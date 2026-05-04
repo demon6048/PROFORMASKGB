@@ -1,0 +1,2228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Proformas Tech</title>
+    
+    <!-- Fuentes: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- html2pdf.js para exportar a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- Iconos -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            dark: '#020617',    // Slate 950
+                            corp: '#1e1b4b',    // Indigo 950
+                            tech: '#3b82f6',    // Blue 500
+                            light: '#8b5cf6',   // Violet 500
+                            accent: '#06b6d4',  // Cyan 500
+                            bg: '#f8fafc',      // Slate 50
+                        }
+                    },
+                    backgroundImage: {
+                        'tech-grid': 'radial-gradient(#cbd5e1 1px, transparent 1px)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #f8fafc; color: #020617; }
+
+        @page { size: A4 portrait; margin: 0; }
+
+        /* Estilo base de la proforma */
+        .a4-preview {
+            width: 210mm; min-width: 210mm; max-width: 210mm;
+            height: 297mm; min-height: 297mm; max-height: 297mm;
+            background: transparent; 
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            margin: 0; padding: 16mm; 
+            position: relative; z-index: 0;
+            overflow: hidden; flex-shrink: 0; 
+            border-radius: 4px;
+        }
+
+        .hide-scrollbar::-webkit-scrollbar { width: 6px; }
+        .hide-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .hide-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+        .hide-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #preview-section, #preview-section * { visibility: visible; }
+            #preview-section { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; box-shadow: none; border-radius: 0; transform: none !important; }
+            #report-preview-section, #report-preview-section * { visibility: visible; }
+            #report-preview-section { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; box-shadow: none; border-radius: 0; transform: none !important; }
+            .a4-preview { box-shadow: none; padding: 0; min-height: auto; }
+            .no-print { display: none !important; }
+        }
+
+        input:focus, textarea:focus, select:focus { outline: none; border-color: #06b6d4; box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15); transition: all 0.2s ease; }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-sm">
+
+    <!-- DATALIST PARA AUTOCOMPLETADO -->
+    <datalist id="inventoryList"></datalist>
+
+    <!-- Header / Navbar -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-gray-200 h-16 flex items-center px-6 justify-between shrink-0 z-20 shadow-sm relative">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-corp to-brand-tech flex items-center justify-center text-white shadow-lg shadow-brand-tech/30">
+                <i data-lucide="cpu" class="w-6 h-6"></i>
+            </div>
+            <div class="flex flex-col">
+                <h1 class="font-black text-xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-brand-corp via-brand-tech to-brand-accent leading-none">ProformaTech</h1>
+                <div id="cloudSyncIndicator" class="flex items-center gap-1.5 mt-0.5 opacity-90 transition-all duration-300">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+                    <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Nube Conectada</span>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-2.5 flex-wrap justify-end">
+            <!-- BOTÓN CONTRATOS -->
+            <button onclick="window.openContractModal()" class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl transition-all duration-200 flex items-center gap-2 font-semibold border border-rose-200 shadow-sm hover:shadow">
+                <i data-lucide="file-signature" class="w-4 h-4"></i> Contratos
+            </button>
+            
+            <!-- BOTÓN INFORMES TÉCNICOS -->
+            <button onclick="window.openReportModal()" class="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-brand-tech rounded-xl transition-all duration-200 flex items-center gap-2 font-semibold border border-blue-200 shadow-sm hover:shadow">
+                <i data-lucide="wrench" class="w-4 h-4"></i> Informes
+            </button>
+            <div class="hidden md:block w-px h-6 bg-gray-200 mx-1"></div>
+
+            <button onclick="window.openCatalogModal()" class="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl transition-all duration-200 flex items-center gap-2 font-semibold border border-slate-200 shadow-sm hover:shadow">
+                <i data-lucide="layers" class="w-4 h-4 text-brand-light"></i> Catálogo
+            </button>
+            <button onclick="window.openProfitModal()" class="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl transition-all duration-200 flex items-center gap-2 font-semibold border border-slate-200 shadow-sm hover:shadow">
+                <i data-lucide="pie-chart" class="w-4 h-4 text-brand-tech"></i> Finanzas
+            </button>
+            <button onclick="window.openHistory()" class="px-3.5 py-2 bg-brand-dark hover:bg-slate-800 text-white rounded-xl transition-all duration-200 flex items-center gap-2 font-semibold shadow-md hover:shadow-lg">
+                <i data-lucide="database" class="w-4 h-4 text-brand-accent"></i> BD Proformas
+            </button>
+            
+            <div class="hidden md:block w-px h-6 bg-gray-200 mx-1"></div>
+            
+            <!-- BOTÓN NUEVA PROFORMA (Ex Tachito de basura) -->
+            <button onclick="window.clearForm()" class="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl transition-all duration-200 flex items-center gap-2 font-semibold border border-indigo-200 shadow-sm hover:shadow">
+                <i data-lucide="file-plus" class="w-4 h-4"></i> Nueva Proforma
+            </button>
+            
+            <button onclick="window.generatePDF(this)" class="px-4 py-2 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white rounded-xl transition-all duration-200 flex items-center gap-2 font-bold shadow-md shadow-orange-500/20 hover:shadow-lg hover:shadow-orange-500/40">
+                <i data-lucide="file-down" class="w-4 h-4"></i> PDF
+            </button>
+            
+            <!-- BOTÓN DE WHATSAPP -->
+            <button onclick="window.sendWhatsApp(this)" class="px-4 py-2 bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#128C7E] hover:to-[#075E54] text-white rounded-xl transition-all duration-200 flex items-center gap-2 font-bold shadow-md shadow-green-500/20 hover:shadow-lg hover:shadow-green-500/40">
+                <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+                WhatsApp
+            </button>
+
+            <button id="btnGuardarApp" onclick="window.saveProforma(this)" class="px-5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl transition-all duration-200 flex items-center gap-2 font-bold shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/40">
+                <i data-lucide="cloud-upload" class="w-4 h-4"></i> Guardar
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex overflow-hidden relative bg-slate-50 flex-col lg:flex-row">
+        
+        <!-- LADO IZQUIERDO: Formulario -->
+        <section class="w-full lg:w-[60%] xl:w-[65%] h-full overflow-y-auto hide-scrollbar p-6 border-r border-gray-200 z-10 bg-white shadow-[10px_0_15px_-3px_rgba(0,0,0,0.02)]">
+            <div class="max-w-4xl mx-auto space-y-6 pb-20">
+
+                <!-- Fila 1: Cabecera de Proforma -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap gap-4 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-brand-tech"></div>
+                    <div class="flex-1 min-w-[120px]">
+                        <label class="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">N° Proforma</label>
+                        <div class="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 transition-colors focus-within:border-brand-tech focus-within:bg-white">
+                            <span class="text-slate-400 mr-1 font-mono font-bold">PF-</span>
+                            <input type="text" id="f_profNumber" class="w-full bg-transparent font-mono font-black text-brand-corp focus:outline-none" oninput="window.updatePreview()">
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-[120px]">
+                        <label class="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Fecha</label>
+                        <input type="date" id="f_date" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 font-medium focus:bg-white transition-colors" onchange="window.updatePreview()">
+                    </div>
+                    <div class="flex-1 min-w-[150px]">
+                        <label class="block text-[11px] font-bold text-brand-tech mb-1.5 uppercase tracking-wider">Estado Actual</label>
+                        <select id="f_status" class="w-full bg-blue-50/50 border border-blue-200 rounded-lg px-3 py-2 text-sm text-brand-corp font-bold focus:ring-2 focus:ring-brand-tech/50 transition-colors cursor-pointer">
+                            <option value="Solo Proforma">📝 Solo Proforma</option>
+                            <option value="Aprobado">👍 Aprobado</option>
+                            <option value="Terminado">✅ Terminado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Fila 2: Cliente -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <h2 class="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <div class="p-1.5 bg-slate-100 rounded-md text-brand-tech"><i data-lucide="user" class="w-4 h-4"></i></div> Datos del Cliente
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="md:col-span-2 lg:col-span-3">
+                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Nombre / Razón Social</label>
+                            <input type="text" id="f_clientName" placeholder="Ej. Juan Pérez" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 font-medium focus:bg-white transition-all" oninput="window.updatePreview()">
+                        </div>
+                        <div class="lg:col-span-1">
+                            <label class="block text-xs font-medium text-slate-500 mb-1.5">DNI / RUC</label>
+                            <input type="text" id="f_clientDoc" placeholder="Ej. 12345678" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 font-medium focus:bg-white transition-all" oninput="window.updatePreview()">
+                        </div>
+                        <div class="lg:col-span-1">
+                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Teléfono / Celular</label>
+                            <input type="text" id="f_clientPhone" placeholder="Ej. 987 654 321" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 font-medium focus:bg-white transition-all" oninput="window.updatePreview()">
+                        </div>
+                        <div class="lg:col-span-1">
+                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Dirección (Opcional)</label>
+                            <input type="text" id="f_clientAddress" placeholder="Dirección del cliente" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 font-medium focus:bg-white transition-all" oninput="window.updatePreview()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fila 3: Productos -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-center mb-5">
+                        <h2 class="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                            <div class="p-1.5 bg-slate-100 rounded-md text-brand-accent"><i data-lucide="cpu" class="w-4 h-4"></i></div> Componentes
+                        </h2>
+                        <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
+                            <button id="btnModeDetalle" onclick="window.setMode('detalle')" class="px-3 py-1.5 text-xs font-bold rounded-md shadow-sm bg-white text-brand-tech transition-all">Detallado</button>
+                            <button id="btnModeFinal" onclick="window.setMode('final')" class="px-3 py-1.5 text-xs font-semibold rounded-md text-slate-500 hover:text-slate-800 transition-all">Precio Final</button>
+                        </div>
+                    </div>
+
+                    <div id="generalDescContainer" class="hidden mb-5 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl">
+                        <label class="block text-xs font-bold text-brand-corp mb-1.5">Descripción General del Equipo</label>
+                        <input type="text" id="f_generalDesc" placeholder="Ej. PC Gamer Core i7" value="Computadora de Escritorio Alto Rendimiento" class="w-full border border-blue-200 rounded-lg px-3 py-2.5 bg-white font-medium shadow-sm focus:border-brand-tech focus:ring-2 focus:ring-brand-tech/20 transition-all" oninput="window.updatePreview()">
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full mb-4">
+                            <thead>
+                                <tr class="text-left text-[10px] text-slate-400 border-b border-slate-200 uppercase font-black tracking-wider">
+                                    <th class="pb-3 w-6 text-center"></th>
+                                    <th class="pb-3 w-16 text-center">Cant</th>
+                                    <th class="pb-3 w-full">Descripción (Autocompletable)</th>
+                                    <th class="pb-3 w-28 lg:w-32 text-orange-500 text-right pr-2">Costo U.</th>
+                                    <th class="pb-3 w-28 lg:w-32 text-emerald-500 text-right pr-2">P. Venta</th>
+                                    <th class="pb-3 w-10 text-center"><i data-lucide="trash-2" class="w-3 h-3 inline"></i></th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsBody" class="divide-y divide-slate-50">
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <button onclick="window.addItemRow()" class="text-xs font-bold text-brand-tech flex items-center gap-1.5 hover:text-brand-corp bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Agregar Fila
+                    </button>
+                </div>
+
+                <!-- Fila 4: Combos / Precios Manuales -->
+                <div class="bg-gradient-to-br from-slate-800 to-brand-corp p-6 rounded-2xl shadow-md text-white relative overflow-hidden">
+                    <div class="absolute -right-10 -top-10 w-32 h-32 bg-white rounded-full opacity-5 blur-2xl"></div>
+                    <h2 class="text-xs font-black text-blue-200 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <i data-lucide="calculator" class="w-4 h-4"></i> Precios de Paquete / Combo
+                    </h2>
+                    <p class="text-[11px] text-blue-100/70 mb-4">Si armas un paquete y dejas los precios de arriba en 0, usa estos campos para definir tu inversión y venta final.</p>
+                    <div class="flex gap-4">
+                        <div class="relative flex-1">
+                            <label class="block text-[10px] font-bold text-orange-300 mb-1.5 uppercase tracking-wider">Costo Total (Gasto)</label>
+                            <span class="absolute left-3 top-[30px] text-orange-200/50 font-bold">S/</span>
+                            <input type="number" min="0" step="0.01" id="f_manualCost" placeholder="Auto" class="w-full bg-white/10 border border-white/20 rounded-xl pl-8 pr-3 py-2.5 text-sm font-bold text-white placeholder-white/30 focus:border-orange-400 focus:bg-white/20 transition-colors" oninput="window.updatePreview()">
+                        </div>
+                        <div class="relative flex-1">
+                            <label class="block text-[10px] font-bold text-emerald-300 mb-1.5 uppercase tracking-wider">Precio Final (Venta)</label>
+                            <span class="absolute left-3 top-[30px] text-emerald-200/50 font-bold">S/</span>
+                            <input type="number" min="0" step="0.01" id="f_manualTotal" placeholder="Auto" class="w-full bg-white/10 border border-white/20 rounded-xl pl-8 pr-3 py-2.5 text-sm font-bold text-white placeholder-white/30 focus:border-emerald-400 focus:bg-white/20 transition-colors" oninput="window.updatePreview()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fila 5: Condiciones -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <h2 class="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <div class="p-1.5 bg-slate-100 rounded-md text-brand-light"><i data-lucide="clipboard-list" class="w-4 h-4"></i></div> Condiciones & Pagos
+                    </h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Garantía</label>
+                            <input type="text" id="f_obsGarantia" value="12 meses contra defectos de fábrica" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium focus:bg-white transition-colors" oninput="window.updatePreview()">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Tiempo de Entrega</label>
+                            <input type="text" id="f_obsEntrega" value="24 a 48 horas tras confirmación" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium focus:bg-white transition-colors" oninput="window.updatePreview()">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Validez de Proforma</label>
+                            <input type="text" id="f_obsValidez" value="3 días útiles" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium focus:bg-white transition-colors" oninput="window.updatePreview()">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Número Yape / Plin</label>
+                            <input type="text" id="f_yape" value="917 309 964" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-bold focus:bg-white transition-colors text-slate-800" oninput="window.updatePreview()">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Link de QR Oficial (Opcional)</label>
+                            <input type="text" id="f_yape_qr_url" placeholder="Ej. https://i.imgur.com/..." class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium focus:bg-white transition-colors" oninput="window.updatePreview()">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-medium text-slate-500 mb-1.5">Otras Notas</label>
+                            <input type="text" id="f_obsNotas" placeholder="Opcional..." class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium focus:bg-white transition-colors" oninput="window.updatePreview()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fila 6: EVIDENCIAS Y FOTOS -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <h2 class="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <div class="p-1.5 bg-slate-100 rounded-md text-emerald-500"><i data-lucide="image" class="w-4 h-4"></i></div> Evidencias / Imágenes
+                    </h2>
+                    <div class="border-2 border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center text-slate-500 hover:bg-slate-50 hover:border-brand-tech transition-colors cursor-pointer relative">
+                        <i data-lucide="upload-cloud" class="w-8 h-8 mb-2 text-slate-400"></i>
+                        <p class="text-xs font-bold text-center">Haz clic para subir o presiona <kbd class="bg-slate-200 px-1.5 py-0.5 rounded text-slate-700 mx-1 border border-slate-300 shadow-sm">Ctrl+V</kbd> para pegar</p>
+                        <input type="file" id="image-upload-input" accept="image/*" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    </div>
+                    <div id="image-thumbnails" class="grid grid-cols-4 gap-3 mt-4 hidden"></div>
+                </div>
+
+                <!-- FIRMA DEL CREADOR -->
+                <div class="pt-6 pb-2 flex justify-center lg:justify-start w-full no-print">
+                    <p class="text-[10px] font-black text-slate-300 uppercase tracking-widest cursor-default hover:text-slate-400 transition-colors flex items-center gap-1.5">
+                        <i data-lucide="code-2" class="w-3 h-3"></i> Desarrollado por JVIZCARRA
+                    </p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- LADO DERECHO: Vista Previa -->
+        <section id="preview-wrapper-section" class="w-full lg:w-[40%] xl:w-[35%] h-full overflow-y-auto bg-slate-200 p-4 lg:p-8 flex justify-center items-start border-l border-slate-300 shadow-inner">
+            
+            <div class="fixed inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9IiNjYmQ1ZTEiLz48L3N2Zz4=')] opacity-60 z-0 pointer-events-none"></div>
+            
+            <div id="preview-scaler" class="origin-top flex justify-center transition-transform duration-200 z-10" style="width: 210mm;">
+                
+                <div id="proforma-pdf-wrapper" class="flex flex-col gap-6 w-full items-center">
+                    
+                    <div id="preview-section" class="a4-preview flex flex-col transition-all duration-300 bg-white">
+                        <img id="p_bgImage" src="https://i.imgur.com/fObiYn6.png" alt="Fondo Proforma" class="absolute inset-0 w-full h-full object-cover -z-10">
+                        
+                        <div class="flex justify-between items-start mb-8 pb-4 border-b-2 border-brand-corp/30">
+                            <div class="flex items-center gap-6 flex-1 min-w-0">
+                                <div id="p_logoContainer" class="w-48 bg-transparent flex items-center justify-center shrink-0">
+                                    <img id="p_uploadedLogo" src="https://i.imgur.com/Dla3rBv.png" alt="KGB Technology Logo" class="max-w-full max-h-24 object-contain">
+                                </div>
+                                <div class="flex-1 min-w-0 flex flex-col justify-center">
+                                    <div class="text-gray-800 text-[13px] space-y-1 font-medium">
+                                        <p><strong class="text-gray-900">RAZÓN SOCIAL:</strong> KGB DISTRIBUIDORES</p>
+                                        <p><strong class="text-gray-900">RUC:</strong> 20600094719</p>
+                                        <p><strong class="text-gray-900">DIRECCIÓN:</strong> Jr. 2 de mayo. 477 Int 201</p>
+                                        <p><strong class="text-gray-900">E-MAIL:</strong> ramirez0072@hotmail.com</p>
+                                        <p class="flex items-center gap-2 whitespace-nowrap pt-1">
+                                            <i data-lucide="phone" class="w-4 h-4 text-brand-tech"></i> <span class="font-bold">917 309 964</span> 
+                                            <span class="text-gray-400">|</span> 
+                                            <i data-lucide="message-circle" class="w-4 h-4 text-green-500"></i> <span class="font-bold">917 309 964</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0 ml-4">
+                                <div class="bg-brand-corp text-white px-5 py-2 rounded-l-full -mr-16 shadow-md">
+                                    <h2 class="text-2xl font-black tracking-widest uppercase">PROFORMA</h2>
+                                </div>
+                                <div class="mt-3 pr-2">
+                                    <p class="text-sm font-bold text-gray-800">N° <span class="text-brand-tech text-lg">PF-<span id="p_profNumber">0000</span></span></p>
+                                    <p class="text-xs text-gray-600 mt-1 font-medium">Fecha: <span id="p_date" class="text-gray-800">09/03/2026</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white/60 backdrop-blur-md rounded-lg p-3 mb-4 border border-white/50 flex justify-between items-center shadow-sm">
+                            <div class="space-y-1 flex-1">
+                                <p class="text-[10px] text-brand-light font-bold uppercase tracking-wider mb-0.5">Cliente</p>
+                                <h3 id="p_clientName" class="text-sm font-bold text-brand-dark uppercase truncate pr-4">--------------------</h3>
+                                <div class="flex items-center gap-4 mt-1">
+                                    <p class="text-xs text-gray-800 font-medium flex items-center gap-1.5">
+                                        <i data-lucide="credit-card" class="w-3.5 h-3.5 text-brand-tech"></i> 
+                                        <span id="p_clientDoc">--</span>
+                                    </p>
+                                    <p class="text-xs text-gray-800 font-medium flex items-center gap-1.5">
+                                        <i data-lucide="smartphone" class="w-3.5 h-3.5 text-brand-tech"></i> 
+                                        <span id="p_clientPhone">--</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex-1 border-l border-brand-corp/20 pl-4 h-full flex flex-col justify-center">
+                                <p class="text-[10px] text-brand-light font-bold uppercase mb-0.5">Dirección</p>
+                                <p id="p_clientAddress" class="text-xs text-gray-800 font-medium">--</p>
+                            </div>
+                        </div>
+
+                        <div class="flex-1">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-brand-corp/90 backdrop-blur-md text-white text-[11px] uppercase tracking-wider">
+                                        <th class="py-2 px-3 font-bold rounded-tl-lg w-16 text-center">Cant</th>
+                                        <th class="py-2 px-3 font-bold">Descripción del Artículo</th>
+                                        <th class="py-2 px-3 font-bold w-24 text-right p-col-price">P. Unit</th>
+                                        <th class="py-2 px-3 font-bold w-32 text-right rounded-tr-lg">Importe</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="p_itemsBody" class="text-xs">
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-auto">
+                            <div class="pt-4 border-t border-brand-corp/30 flex justify-between items-end">
+                                
+                                <div class="w-[62%] flex flex-col gap-3">
+                                <div class="text-xs text-gray-900 bg-white/60 backdrop-blur-md p-3 rounded-lg border border-white/50 shadow-sm">
+                                    <h4 class="font-bold text-brand-corp mb-1.5 uppercase tracking-wider flex items-center gap-1">
+                                        <i data-lucide="landmark" class="w-3 h-3"></i> Cuentas Bancarias y Billeteras
+                                    </h4>
+                                    <div class="grid grid-cols-2 gap-x-2 gap-y-1 font-medium mb-3">
+                                        <p class="col-span-2"><strong class="text-gray-900">Titular:</strong> José Leonaldo Vizcarra Ramirez</p>
+                                        <p><strong class="text-gray-900">BBVA Soles:</strong> 0011-0210-0200820446</p>
+                                        <p><strong class="text-gray-900">CCI (S/):</strong> 01121000020082044629</p>
+                                    </div>
+                                    
+                                    <div class="flex items-center gap-3 p-2.5 bg-white border border-slate-200 rounded-lg shadow-sm">
+                                        <div class="w-12 h-12 bg-white p-0.5 rounded shadow-sm border border-slate-200 shrink-0">
+                                            <img id="p_yape_qr" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=917309964" alt="QR Yape Plin" class="w-full h-full object-cover rounded-sm">
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-1.5 mb-1">
+                                                <span class="bg-[#742284] text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase tracking-wider">YAPE</span>
+                                                <span class="bg-[#00E4CC] text-[#002242] text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase tracking-wider">PLIN</span>
+                                            </div>
+                                            <p class="font-black text-lg text-slate-800 leading-none tracking-wide" id="p_yape">917 309 964</p>
+                                            <p class="text-[8px] text-slate-500 font-bold uppercase tracking-wider mt-1">Toma captura a este QR y súbelo a tu app</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="text-xs text-gray-900 bg-white/60 backdrop-blur-md p-3 rounded-lg border border-white/50 shadow-sm">
+                                    <h4 class="font-bold text-brand-corp mb-1.5 uppercase tracking-wider flex items-center gap-1">
+                                        <i data-lucide="info" class="w-3 h-3"></i> Condiciones
+                                    </h4>
+                                    <div class="flex flex-wrap gap-x-5 gap-y-1 font-medium">
+                                        <span><strong class="text-gray-900">Garantía:</strong> <span id="p_obsGarantia"></span></span>
+                                        <span><strong class="text-gray-900">Entrega:</strong> <span id="p_obsEntrega"></span></span>
+                                        <span><strong class="text-gray-900">Validez:</strong> <span id="p_obsValidez"></span></span>
+                                    </div>
+                                    <div id="p_obsNotasContainer" class="hidden mt-1 font-medium"><strong class="text-gray-900">Notas:</strong> <span id="p_obsNotas"></span></div>
+                                </div>
+                            </div>
+
+                            <div class="w-[35%] space-y-2">
+                                <div class="flex justify-between items-center text-gray-800 font-bold px-4 bg-white/40 backdrop-blur-sm rounded py-1">
+                                    <span>Subtotal</span>
+                                    <span id="p_subtotal" class="font-mono">S/ 0.00</span>
+                                </div>
+                                <div class="flex justify-between items-center bg-brand-corp text-white p-4 rounded-xl shadow-lg relative overflow-hidden">
+                                    <div class="absolute -right-4 -top-4 w-16 h-16 bg-brand-light rounded-full opacity-20"></div>
+                                    <span class="font-bold uppercase tracking-wider relative z-10">Total</span>
+                                    <span id="p_total" class="text-xl font-black font-mono relative z-10">S/ 0.00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 text-center bg-white/40 backdrop-blur-sm py-1.5 rounded-lg border border-white/30 relative">
+                            <p class="text-base font-bold text-brand-corp italic shadow-white">¡Gracias por su compra y confianza!</p>
+                            <p class="absolute -bottom-6 right-2 text-[8px] font-black text-brand-tech opacity-70 uppercase tracking-widest">Creado por JVIZCARRA</p>
+                        </div>
+                        
+                        </div> 
+                    </div>
+                    
+                    <div id="preview-images-section" class="w-full flex flex-col gap-6"></div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- 📦 MODAL DE CONTRATOS -->
+        <div id="contractModal" class="hidden fixed inset-0 bg-brand-dark/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200">
+                <div class="px-6 py-4 border-b border-rose-100 flex justify-between items-center bg-rose-50">
+                    <h2 class="text-xl font-black text-brand-dark flex items-center gap-2 uppercase tracking-wide">
+                        <div class="p-1.5 bg-white rounded shadow-sm text-rose-500"><i data-lucide="file-signature" class="w-5 h-5"></i></div> Generación de Contratos
+                    </h2>
+                    <button onclick="window.closeContractModal()" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                
+                <div class="p-5 bg-white border-b border-slate-100 shadow-sm">
+                    <p class="text-sm text-slate-600 font-medium"><i data-lucide="info" class="w-4 h-4 inline text-blue-500 mr-1"></i> Aquí solo aparecen las proformas aprobadas o terminadas. <strong>Edita el porcentaje (%) de adelanto</strong> según lo acordado con el cliente.</p>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-6 bg-slate-50">
+                    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-100 text-slate-500 text-[10px] uppercase font-black tracking-wider border-b border-slate-200">
+                                <tr>
+                                    <th class="py-3 px-4">Fecha</th>
+                                    <th class="py-3 px-4">N° Proforma</th>
+                                    <th class="py-3 px-4">Cliente</th>
+                                    <th class="py-3 px-4 text-right">Venta Total</th>
+                                    <th class="py-3 px-4 text-center text-rose-600">% Adelanto</th>
+                                    <th class="py-3 px-4 text-right text-rose-600">A Pagar (S/)</th>
+                                    <th class="py-3 px-4 text-center">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="contractTableBody" class="text-sm divide-y divide-slate-100">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 📦 MODAL DE CATÁLOGO DE PRODUCTOS -->
+        <div id="catalogModal" class="hidden fixed inset-0 bg-brand-dark/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200">
+                <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                    <h2 class="text-xl font-black text-brand-dark flex items-center gap-2 uppercase tracking-wide">
+                        <div class="p-1.5 bg-white rounded shadow-sm text-brand-light"><i data-lucide="layers" class="w-5 h-5"></i></div> Catálogo de Productos
+                    </h2>
+                    <button onclick="window.closeCatalogModal()" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                
+                <div class="p-5 bg-white border-b border-slate-100 shadow-sm flex flex-wrap gap-3 items-end">
+                    <div class="flex-1 min-w-[250px]">
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Descripción del Producto</label>
+                        <input type="text" id="cat_desc" placeholder="Ej. Monitor Samsung 24'' 144Hz" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:bg-white transition-colors">
+                    </div>
+                    <div class="w-32">
+                        <label class="block text-[11px] font-bold text-orange-500 uppercase tracking-wider mb-1.5">Costo (S/)</label>
+                        <input type="number" step="0.01" id="cat_cost" placeholder="0.00" class="w-full bg-orange-50 border border-orange-200 rounded-lg px-3 py-2.5 text-sm focus:bg-white transition-colors text-orange-700 font-bold">
+                    </div>
+                    <div class="w-32">
+                        <label class="block text-[11px] font-bold text-emerald-500 uppercase tracking-wider mb-1.5">Venta (S/)</label>
+                        <input type="number" step="0.01" id="cat_price" placeholder="0.00" class="w-full bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2.5 text-sm focus:bg-white transition-colors text-emerald-700 font-bold">
+                    </div>
+                    <button onclick="window.addCatalogItem()" class="px-5 py-2.5 bg-brand-dark hover:bg-slate-800 text-white font-bold rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2 h-[42px]">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Guardar
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-5 bg-slate-50">
+                    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-100 text-slate-500 text-[10px] uppercase font-black tracking-wider border-b border-slate-200">
+                                <tr>
+                                    <th class="py-3 px-4">Descripción</th>
+                                    <th class="py-3 px-4 w-24 text-right">Costo</th>
+                                    <th class="py-3 px-4 w-24 text-right">Venta</th>
+                                    <th class="py-3 px-4 w-16 text-center">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="catalogTableBody" class="text-sm divide-y divide-slate-100">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 💰 MODAL DE DASHBOARD FINANCIERO -->
+        <div id="profitModal" class="hidden fixed inset-0 bg-brand-dark/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[95vh] border border-slate-200">
+                <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                    <h2 class="text-xl font-black text-brand-dark flex items-center gap-2 uppercase tracking-wide">
+                        <div class="p-1.5 bg-white rounded shadow-sm text-brand-tech"><i data-lucide="pie-chart" class="w-5 h-5"></i></div> Dashboard de Finanzas
+                    </h2>
+                    <button onclick="window.closeProfitModal()" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                
+                <div class="p-6 bg-slate-50 flex flex-col gap-6 overflow-y-auto">
+                    
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
+                        <div class="absolute left-0 top-0 w-1 h-full bg-brand-tech"></div>
+                        <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <i data-lucide="target" class="w-4 h-4 text-brand-tech"></i> Proyección de Proforma Actual
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="flex flex-col justify-center p-4 bg-orange-50/50 rounded-xl border border-orange-100">
+                                <span class="font-bold text-orange-600/80 uppercase text-[10px] tracking-widest flex items-center gap-1.5 mb-1"><i data-lucide="trending-down" class="w-3.5 h-3.5"></i> Inversión (Gasto)</span>
+                                <span id="m_inv" class="text-xl font-black font-mono text-orange-600">S/ 0.00</span>
+                            </div>
+                            <div class="flex flex-col justify-center p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                                <span class="font-bold text-blue-600/80 uppercase text-[10px] tracking-widest flex items-center gap-1.5 mb-1"><i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i> Total Venta</span>
+                                <span id="m_ven" class="text-xl font-black font-mono text-blue-600">S/ 0.00</span>
+                            </div>
+                            <div class="flex flex-col justify-center p-4 bg-gradient-to-br from-brand-tech to-brand-corp rounded-xl shadow-md relative overflow-hidden text-white">
+                                <div class="absolute -right-4 -top-4 w-16 h-16 bg-white rounded-full opacity-10"></div>
+                                <span class="font-bold text-blue-200 uppercase text-[10px] tracking-widest z-10 mb-1">Ganancia Libre</span>
+                                <span id="m_gan" class="text-2xl font-black font-mono relative z-10">S/ 0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <i data-lucide="bar-chart-2" class="w-4 h-4 text-emerald-500"></i> Ingresos Reales <span class="text-slate-400 font-normal normal-case tracking-normal">(Solo proformas en 'Terminado')</span>
+                            </h3>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                            
+                            <div class="border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white">
+                                <div class="bg-slate-50 py-3 px-4 border-b border-slate-200">
+                                    <h4 class="font-black text-slate-700 text-xs uppercase tracking-wider flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4 text-slate-400"></i> Hoy</h4>
+                                </div>
+                                <div class="p-4 space-y-4">
+                                    <div>
+                                        <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Ingreso Bruto</p>
+                                        <p id="m_hoy_ingreso" class="text-lg font-mono font-bold text-slate-800">S/ 0.00</p>
+                                    </div>
+                                    <div class="pt-3 border-t border-slate-100">
+                                        <p class="text-[10px] text-emerald-500 uppercase font-bold tracking-wider mb-1">Ganancia Neta</p>
+                                        <p id="m_hoy_ganancia" class="text-2xl font-mono font-black text-emerald-500">S/ 0.00</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="border-2 border-brand-tech/30 rounded-xl overflow-hidden shadow-md relative bg-white transform scale-105 z-10">
+                                <div class="bg-blue-50 py-3 px-4 border-b border-blue-100 flex justify-between items-center">
+                                    <h4 class="font-black text-brand-corp text-xs uppercase tracking-wider flex items-center gap-2"><i data-lucide="calendar-days" class="w-4 h-4 text-brand-tech"></i> Este Mes</h4>
+                                    <span class="bg-brand-tech text-white text-[9px] px-2 py-0.5 rounded shadow-sm font-bold uppercase tracking-wider">Actual</span>
+                                </div>
+                                <div class="p-5 space-y-4">
+                                    <div>
+                                        <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Ingreso Bruto</p>
+                                        <p id="m_mes_ingreso" class="text-xl font-mono font-bold text-slate-800">S/ 0.00</p>
+                                    </div>
+                                    <div class="pt-4 border-t border-slate-100">
+                                        <p class="text-[10px] text-emerald-500 uppercase font-bold tracking-wider mb-1">Ganancia Neta</p>
+                                        <p id="m_mes_ganancia" class="text-3xl font-mono font-black text-emerald-500 drop-shadow-sm">S/ 0.00</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white">
+                                <div class="bg-slate-50 py-3 px-4 border-b border-slate-200">
+                                    <h4 class="font-black text-slate-700 text-xs uppercase tracking-wider flex items-center gap-2"><i data-lucide="calendar-check" class="w-4 h-4 text-slate-400"></i> Este Año</h4>
+                                </div>
+                                <div class="p-4 space-y-4">
+                                    <div>
+                                        <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Ingreso Bruto</p>
+                                        <p id="m_ano_ingreso" class="text-lg font-mono font-bold text-slate-800">S/ 0.00</p>
+                                    </div>
+                                    <div class="pt-3 border-t border-slate-100">
+                                        <p class="text-[10px] text-emerald-500 uppercase font-bold tracking-wider mb-1">Ganancia Neta</p>
+                                        <p id="m_ano_ganancia" class="text-2xl font-mono font-black text-emerald-500">S/ 0.00</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL DE HISTORIAL Y BASE DE DATOS -->
+        <div id="historyModal" class="hidden fixed inset-0 bg-brand-dark/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-6xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200">
+                <div class="px-6 py-4 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center bg-slate-50 gap-4">
+                    <h2 class="text-xl font-black text-brand-dark flex items-center gap-2 uppercase tracking-wide">
+                        <div class="p-1.5 bg-white rounded shadow-sm text-brand-accent"><i data-lucide="database" class="w-5 h-5"></i></div> Base de Datos & Historial
+                    </h2>
+                    <div class="flex items-center gap-3 w-full md:w-auto">
+                        <div class="relative flex-1 md:w-64">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+                            <input type="text" id="searchHistory" oninput="window.renderHistoryTable()" placeholder="Buscar cliente o N°..." class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:border-brand-tech focus:ring-2 focus:ring-brand-tech/20 outline-none transition-all shadow-sm">
+                        </div>
+                        <button onclick="window.closeHistory()" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors bg-white border border-slate-200 shadow-sm">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-4 p-6 bg-white border-b border-slate-100">
+                    <div class="bg-blue-50/50 border border-blue-100 p-4 rounded-xl text-center shadow-sm">
+                        <p class="text-[10px] text-blue-500 font-bold uppercase tracking-widest mb-1.5">Total Cotizado</p>
+                        <p id="h_totalCount" class="text-2xl font-black text-brand-corp">0</p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl text-center shadow-sm">
+                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">Ventas por Cobrar</p>
+                        <p id="h_totalPendiente" class="text-xl font-black font-mono text-slate-700">S/ 0.00</p>
+                    </div>
+                    <div class="bg-emerald-50/50 border border-emerald-100 p-4 rounded-xl text-center shadow-sm">
+                        <p class="text-[10px] text-emerald-600 font-bold uppercase tracking-widest mb-1.5">Ingreso Bruto</p>
+                        <p id="h_totalIngreso" class="text-xl font-black font-mono text-emerald-600">S/ 0.00</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-brand-dark to-brand-corp border border-brand-corp p-4 rounded-xl text-center relative overflow-hidden shadow-md">
+                        <div class="absolute -right-2 -top-2 w-10 h-10 bg-white rounded-full opacity-10"></div>
+                        <p class="text-[10px] text-blue-200 font-bold uppercase tracking-widest mb-1.5">Ganancia Neta Real</p>
+                        <p id="h_totalGanancia" class="text-xl font-black font-mono text-white">S/ 0.00</p>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-6 bg-slate-50">
+                    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-100 text-slate-500 text-[10px] uppercase font-black tracking-wider border-b border-slate-200">
+                                <tr>
+                                    <th class="py-3 px-4">Fecha</th>
+                                    <th class="py-3 px-4">Proforma</th>
+                                    <th class="py-3 px-4">Cliente</th>
+                                    <th class="py-3 px-4 text-right">Inversión</th>
+                                    <th class="py-3 px-4 text-right">Venta</th>
+                                    <th class="py-3 px-4 text-right text-brand-tech">Ganancia</th>
+                                    <th class="py-3 px-4 text-center">Estado</th>
+                                    <th class="py-3 px-4 text-center">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dbTableBody" class="text-sm divide-y divide-slate-50">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🛠️ MODAL DE INFORMES TÉCNICOS -->
+        <div id="reportModal" class="hidden fixed inset-0 bg-brand-dark/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 lg:p-4">
+            <div class="bg-white w-full h-[98vh] max-w-[1500px] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
+                <div class="px-6 py-4 border-b border-blue-100 flex justify-between items-center bg-blue-50/50 shrink-0">
+                    <h2 class="text-xl font-black text-brand-dark flex items-center gap-2 uppercase tracking-wide">
+                        <div class="p-1.5 bg-white rounded shadow-sm text-brand-tech"><i data-lucide="wrench" class="w-5 h-5"></i></div> Generador de Informes Técnicos
+                    </h2>
+                    <div class="flex gap-3">
+                        <button onclick="window.saveReportToCloud(this)" class="px-5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl font-bold shadow-md shadow-emerald-500/20 flex items-center gap-2 transition-all">
+                            <i data-lucide="cloud-upload" class="w-4 h-4"></i> Guardar
+                        </button>
+                        <button onclick="window.sendReportWhatsApp(this)" class="px-5 py-2 bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#128C7E] hover:to-[#075E54] text-white rounded-xl font-bold shadow-md shadow-green-500/20 flex items-center gap-2 transition-all">
+                            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+                            WhatsApp
+                        </button>
+                        <button onclick="window.generateReportPDF(this)" class="px-5 py-2 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white rounded-xl font-bold shadow-md shadow-orange-500/20 flex items-center gap-2 transition-all">
+                            <i data-lucide="file-down" class="w-4 h-4"></i> Descargar PDF
+                        </button>
+                        <button onclick="window.closeReportModal()" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors bg-white border border-slate-200 shadow-sm">
+                            <i data-lucide="x" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col lg:flex-row overflow-hidden bg-slate-50">
+                    <div class="w-full lg:w-[55%] h-full overflow-y-auto p-6 border-r border-slate-200 bg-white shadow-inner">
+                        <div class="max-w-2xl mx-auto space-y-5">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">N° Informe</label>
+                                    <div class="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                                        <span class="text-slate-400 mr-1 font-mono font-bold">IT-</span>
+                                        <input type="text" id="r_num" value="0001" class="w-full bg-transparent font-mono font-black text-brand-tech focus:outline-none" oninput="window.updateReportPreview()">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Fecha</label>
+                                    <input type="date" id="r_date" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium focus:bg-white" onchange="window.updateReportPreview()">
+                                </div>
+                            </div>
+
+                            <div class="bg-blue-50/30 p-5 rounded-2xl border border-blue-100">
+                                <h3 class="text-xs font-black text-brand-tech uppercase tracking-widest mb-3 flex items-center gap-2"><i data-lucide="user" class="w-4 h-4"></i> Datos del Cliente</h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="col-span-2">
+                                        <input type="text" id="r_clientName" placeholder="Nombre o Razón Social" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 font-medium" oninput="window.updateReportPreview()">
+                                    </div>
+                                    <div>
+                                        <input type="text" id="r_clientDoc" placeholder="DNI / RUC" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 font-medium" oninput="window.updateReportPreview()">
+                                    </div>
+                                    <div>
+                                        <input type="text" id="r_clientPhone" placeholder="Teléfono / WhatsApp" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 font-medium" oninput="window.updateReportPreview()">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-100 p-5 rounded-2xl border border-slate-200">
+                                <h3 class="text-xs font-black text-slate-700 uppercase tracking-widest mb-3 flex items-center gap-2"><i data-lucide="monitor" class="w-4 h-4"></i> Datos del Equipo</h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="col-span-2">
+                                        <input type="text" id="r_equipment" placeholder="Tipo de Equipo (Ej. DVR 8 Canales, Laptop, PC Gamer)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 font-medium" oninput="window.updateReportPreview()">
+                                    </div>
+                                    <div>
+                                        <input type="text" id="r_brand" placeholder="Marca / Modelo" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 font-medium" oninput="window.updateReportPreview()">
+                                    </div>
+                                    <div>
+                                        <input type="text" id="r_serial" placeholder="Número de Serie (S/N)" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 font-medium" oninput="window.updateReportPreview()">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-black text-red-500 mb-1.5 uppercase tracking-wider flex items-center gap-1.5"><i data-lucide="alert-triangle" class="w-4 h-4"></i> Falla Reportada / Motivo</label>
+                                    <textarea id="r_issue" rows="2" placeholder="¿Qué reportó el cliente que fallaba?" class="w-full bg-red-50/30 border border-red-100 rounded-xl px-3 py-2.5 font-medium resize-none focus:border-red-400" oninput="window.updateReportPreview()"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-black text-brand-tech mb-1.5 uppercase tracking-wider flex items-center gap-1.5"><i data-lucide="search" class="w-4 h-4"></i> Diagnóstico Técnico</label>
+                                    <textarea id="r_diagnosis" rows="4" placeholder="Detalle técnico del análisis realizado..." class="w-full bg-blue-50/30 border border-blue-100 rounded-xl px-3 py-2.5 font-medium resize-none focus:border-blue-400" oninput="window.updateReportPreview()"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-black text-emerald-600 mb-1.5 uppercase tracking-wider flex items-center gap-1.5"><i data-lucide="check-circle-2" class="w-4 h-4"></i> Conclusión / Recomendación</label>
+                                    <textarea id="r_solution" rows="3" placeholder="Acciones sugeridas o soluciones a aplicar..." class="w-full bg-emerald-50/30 border border-emerald-100 rounded-xl px-3 py-2.5 font-medium resize-none focus:border-emerald-400" oninput="window.updateReportPreview()"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="report-preview-wrapper" class="w-full lg:w-[45%] h-full overflow-y-auto bg-slate-200 p-4 flex justify-center items-start shadow-inner">
+                        <div id="report-preview-scaler" class="origin-top transition-transform duration-200 z-10" style="width: 210mm;">
+                            <div id="report-preview-section" class="a4-preview bg-white flex flex-col relative z-0">
+                                
+                                <img src="https://i.imgur.com/fObiYn6.png" alt="Fondo" class="absolute inset-0 w-full h-full object-cover -z-10 opacity-70">
+                                
+                                <div class="flex justify-between items-start mb-6 pb-4 border-b-2 border-brand-corp/30">
+                                    <div class="flex items-center gap-6 flex-1 min-w-0">
+                                        <div class="w-40 bg-transparent flex items-center justify-center shrink-0">
+                                            <img src="https://i.imgur.com/Dla3rBv.png" alt="Logo" class="max-w-full max-h-20 object-contain">
+                                        </div>
+                                        <div class="flex-1 min-w-0 flex flex-col justify-center">
+                                            <div class="text-gray-800 text-xs space-y-0.5 font-medium">
+                                                <p><strong class="text-gray-900">KGB DISTRIBUIDORES</strong></p>
+                                                <p><strong class="text-gray-900">RUC:</strong> 20600094719</p>
+                                                <p>Jr. 2 de mayo. 477 Int 201</p>
+                                                <p class="font-bold text-brand-tech">917 309 964</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-right shrink-0 ml-4">
+                                        <div class="bg-brand-dark text-white px-5 py-2 rounded-l-full -mr-16 shadow-md border-l-4 border-brand-accent">
+                                            <h2 class="text-xl font-black tracking-widest uppercase">INFORME TÉCNICO</h2>
+                                        </div>
+                                        <div class="mt-3 pr-2">
+                                            <p class="text-sm font-bold text-gray-800">N° <span class="text-brand-tech text-lg">IT-<span id="pr_num">0000</span></span></p>
+                                            <p class="text-xs text-gray-600 mt-1 font-medium">Fecha: <span id="pr_date" class="text-gray-800">--/--/----</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4 mb-6">
+                                    <div class="bg-white/80 backdrop-blur-md rounded-lg p-3 border border-brand-corp/20 shadow-sm">
+                                        <h4 class="text-[10px] text-brand-corp font-black uppercase tracking-widest mb-2 border-b border-brand-corp/10 pb-1"><i data-lucide="user" class="w-3 h-3 inline"></i> Cliente</h4>
+                                        <p class="text-sm font-bold text-slate-800 uppercase" id="pr_clientName">----------------</p>
+                                        <p class="text-[11px] text-slate-600 font-medium mt-1">DNI/RUC: <span id="pr_clientDoc">--</span> | Tel: <span id="pr_clientPhone">--</span></p>
+                                    </div>
+                                    <div class="bg-white/80 backdrop-blur-md rounded-lg p-3 border border-brand-corp/20 shadow-sm">
+                                        <h4 class="text-[10px] text-brand-corp font-black uppercase tracking-widest mb-2 border-b border-brand-corp/10 pb-1"><i data-lucide="monitor" class="w-3 h-3 inline"></i> Equipo</h4>
+                                        <p class="text-sm font-bold text-brand-tech uppercase" id="pr_equipment">----------------</p>
+                                        <p class="text-xs text-slate-600 font-medium mt-1">Marca/Mod: <span id="pr_brand">--</span> | S/N: <span id="pr_serial">--</span></p>
+                                    </div>
+                                </div>
+
+                                <div class="flex-1 space-y-5">
+                                    <div>
+                                        <div class="bg-red-500 text-white text-xs font-black uppercase px-3 py-1.5 rounded-t-lg inline-block shadow-sm">Motivo de Ingreso</div>
+                                        <div class="bg-white/70 backdrop-blur-sm border border-red-200 rounded-b-lg rounded-tr-lg p-4 text-sm text-gray-800 leading-relaxed min-h-[60px]" id="pr_issue">...</div>
+                                    </div>
+                                    <div>
+                                        <div class="bg-brand-tech text-white text-xs font-black uppercase px-3 py-1.5 rounded-t-lg inline-block shadow-sm">Diagnóstico Técnico</div>
+                                        <div class="bg-white/70 backdrop-blur-sm border border-blue-200 rounded-b-lg rounded-tr-lg p-4 text-sm text-gray-800 leading-relaxed min-h-[120px] text-justify whitespace-pre-wrap" id="pr_diagnosis">...</div>
+                                    </div>
+                                    <div>
+                                        <div class="bg-emerald-500 text-white text-xs font-black uppercase px-3 py-1.5 rounded-t-lg inline-block shadow-sm">Conclusión / Recomendación</div>
+                                        <div class="bg-white/70 backdrop-blur-sm border border-emerald-200 rounded-b-lg rounded-tr-lg p-4 text-sm text-gray-800 leading-relaxed min-h-[80px]" id="pr_solution">...</div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-12 flex justify-center items-end pb-8">
+                                    <div class="w-72 text-center flex flex-col items-center">
+                                        <img src="https://i.imgur.com/R2Wi8kr.png" alt="Firma Autorizada" class="h-24 object-contain z-10 -mb-3">
+                                        <div class="border-t-2 border-brand-corp/60 w-full pt-2 font-bold text-sm text-slate-800">José Leonaldo Vizcarra Ramirez</div>
+                                        <div class="text-xs text-slate-500 font-medium mt-1">DNI: 44865269<br><span class="font-bold text-brand-tech">Técnico Especialista - KGB Distribuidores</span></div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-auto text-center border-t border-brand-corp/20 pt-3 relative">
+                                    <p class="text-[10px] font-bold text-brand-corp/60 uppercase">Este documento certifica el estado técnico del equipo al momento de la revisión.</p>
+                                    <p class="absolute bottom-1 right-2 text-[8px] font-black text-brand-tech opacity-70 uppercase tracking-widest">Creado por JVIZCARRA</p>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 📄 PLANTILLA OCULTA PARA IMPRIMIR EL CONTRATO PDF -->
+    <div id="contract-hidden-container" class="fixed -left-[9999px] top-0">
+        <div id="contract-template" class="a4-preview bg-white flex flex-col" style="padding: 20mm; color: black; border-radius: 0;">
+            <div class="flex justify-between items-center mb-6 border-b-2 border-gray-800 pb-4">
+                <img src="https://i.imgur.com/Dla3rBv.png" alt="Logo" class="h-14 object-contain">
+                <div class="text-right">
+                    <h2 class="text-xl font-black uppercase tracking-widest text-gray-800">CONTRATO DE SERVICIOS</h2>
+                    <p class="text-sm font-bold text-gray-600 mt-1">Ref: <span id="c_profNumber" class="text-brand-tech"></span></p>
+                </div>
+            </div>
+
+            <div class="text-[13px] text-justify space-y-4 leading-relaxed text-gray-800 flex-1">
+                <p>Conste por el presente documento, el <strong>CONTRATO DE COMPRAVENTA Y PRESTACIÓN DE SERVICIOS</strong>, que celebran de una parte <strong>KGB DISTRIBUIDORES</strong> con RUC 20600094719, con domicilio en Jr. 2 de mayo. 477 Int 201, a quien en adelante se le denominará <strong>EL PROVEEDOR</strong>; y de la otra parte <strong><span id="c_clientName" class="uppercase"></span></strong>, identificado con DNI/RUC N° <strong><span id="c_clientDoc"></span></strong>, a quien en adelante se le denominará <strong>EL CLIENTE</strong>; en los términos y condiciones siguientes:</p>
+
+                <p><strong>PRIMERA: OBJETO DEL CONTRATO</strong><br>
+                EL PROVEEDOR se compromete a entregar los equipos de cómputo y/o prestar los servicios técnicos detallados estrictamente en la <strong>Proforma N° <span id="c_profNumber_2"></span></strong>, de fecha <span id="c_date"></span>, la cual ha sido aprobada y forma parte integral de este contrato.</p>
+
+                <p><strong>SEGUNDA: CONTRAPRESTACIÓN Y FORMA DE PAGO</strong><br>
+                El precio total acordado por los bienes y servicios descritos asciende a la suma de <strong>S/ <span id="c_total"></span></strong> (Soles).</p>
+
+                <div id="c_payment_terms"></div>
+
+                <p><strong>TERCERA: GARANTÍA Y CONDICIONES</strong><br>
+                Los equipos cuentan con una garantía contra defectos de fábrica. El tiempo estimado de entrega y validez del acuerdo se rige estrictamente por lo indicado en la proforma original. Toda modificación al requerimiento inicial solicitada por EL CLIENTE generará un reajuste en los costos y tiempos de entrega.</p>
+
+                <p>En señal de conformidad absoluta con todos los términos del presente contrato, ambas partes proceden a firmar el presente documento.</p>
+            </div>
+
+            <div class="mt-8 pt-6 flex justify-around items-end pb-8">
+                <div class="w-64 text-center flex flex-col items-center">
+                    <img src="https://i.imgur.com/R2Wi8kr.png" alt="Firma Autorizada" class="h-20 object-contain z-10 -mb-2">
+                    <div class="border-t border-gray-800 w-full pt-2 font-bold text-sm">José Leonaldo Vizcarra Ramirez</div>
+                    <div class="text-xs text-gray-500">DNI: 44865369<br>Gerente General - KGB DISTRIBUIDORES</div>
+                </div>
+                <div class="w-64 text-center">
+                    <div class="border-t border-gray-800 pt-2 font-bold text-sm uppercase truncate"><span id="c_clientName_sign"></span></div>
+                    <div class="text-xs text-gray-500">DNI/RUC: <span id="c_clientDoc_sign"></span><br>EL CLIENTE</div>
+                </div>
+            </div>
+            
+            <div class="mt-auto text-center border-t border-gray-300 pt-4 text-[9px] text-gray-400 relative">
+                Documento generado automáticamente por ProformaTech - KGB Distribuidores
+                <p class="absolute bottom-0 right-0 text-[8px] font-black text-brand-tech opacity-70 uppercase tracking-widest">Creado por JVIZCARRA</p>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        
+        // URL ÚNICA DE GOOGLE SHEETS (EL NUEVO CEREBRO)
+        window.WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbw1I4Z1zPHqm0Xps9tFSAH7E0e9Y7eED1rsB3kdX2j3i42rGA1qAFkAi149tAG5wdc/exec";
+
+        // FORZAR MAYÚSCULAS EN TODOS LOS CAMPOS DE TEXTO
+        document.addEventListener('input', function(e) {
+            if ((e.target.tagName === 'INPUT' && e.target.type === 'text') || e.target.tagName === 'TEXTAREA') {
+                if (e.target.id === 'f_yape_qr_url' || e.target.id === 'searchHistory') return; // Excluir links y buscador
+                const start = e.target.selectionStart;
+                const end = e.target.selectionEnd;
+                e.target.value = e.target.value.toUpperCase();
+                e.target.setSelectionRange(start, end);
+            }
+        });
+
+        lucide.createIcons();
+
+        // ESTADO DE IMÁGENES
+        window.proformaImages = [];
+
+        // MOTOR DE ESCALADO INTELIGENTE DE LA VISTA PREVIA
+        window.adjustPreviewScale = () => {
+            const wrapper = document.getElementById('preview-wrapper-section');
+            const scaler = document.getElementById('preview-scaler');
+            if(wrapper && scaler) {
+                const availableWidth = wrapper.clientWidth - 32;
+                const a4Width = 794; 
+                let scale = availableWidth / a4Width;
+                if(scale > 1) scale = 1;
+
+                scaler.style.transform = `scale(${scale})`;
+                scaler.style.width = `${a4Width}px`; 
+                
+                const numPages = 1 + Math.ceil(window.proformaImages.length / 2);
+                const gapPixels = 24 * (numPages - 1); 
+                const totalHeight = (1123 * numPages) + gapPixels;
+                
+                scaler.style.height = `${totalHeight * scale}px`;
+            }
+        };
+        window.addEventListener('resize', window.adjustPreviewScale);
+
+        // ESTADO GLOBAL
+        let proformasList = []; 
+        let productCatalog = []; 
+        window.currentEditId = null;
+
+        let items = [{ id: 1, qty: 1, desc: '', cost: 0, price: 0 }];
+        let viewMode = 'detalle';
+
+        // ==========================================
+        // 1. LECTURA MAESTRA DESDE GOOGLE SHEETS
+        // ==========================================
+        window.fetchGoogleSheetsData = async () => {
+            window.currentEditId = null; 
+            const inputProf = document.getElementById('f_profNumber');
+            const inputRep = document.getElementById('r_num');
+            if (inputProf.value === "") inputProf.value = "..."; 
+            
+            try {
+                window.setCloudStatus('syncing');
+                const response = await fetch(window.WEBHOOK_URL);
+                const data = await response.json();
+                
+                // Cargar números consecutivos
+                inputProf.value = String(data.nextProfNum || 1).padStart(4, '0');
+                if(inputRep) inputRep.value = String(data.nextRepNum || 1).padStart(4, '0');
+                
+                // Cargar el historial exacto desde la nube
+                if (data.proformas) {
+                    proformasList = data.proformas.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    renderHistoryTable(); 
+                    if (document.getElementById('contractModal') && !document.getElementById('contractModal').classList.contains('hidden')) {
+                        renderContractTable(); 
+                    }
+                }
+
+                // Cargar el Catálogo
+                if (data.products && data.products.length > 0) {
+                    const uniqueProducts = [...productCatalog]; 
+                    const descSet = new Set(productCatalog.map(p => (p.desc || '').toUpperCase()));
+                    
+                    data.products.forEach((p, i) => {
+                        const safeDesc = (p.desc || '').toUpperCase();
+                        if(!descSet.has(safeDesc)) {
+                            descSet.add(safeDesc);
+                            uniqueProducts.push({
+                                id: p.id || ('gs_' + i),
+                                desc: safeDesc,
+                                cost: p.cost || 0,
+                                price: p.price || 0
+                            });
+                        }
+                    });
+                    
+                    productCatalog = uniqueProducts;
+                    localStorage.setItem('productCatalog_kgb', JSON.stringify(productCatalog));
+                }
+
+                // SIEMPRE ACTIVAR EL AUTOCOMPLETADO
+                renderCatalogTable();
+                updateDatalist();
+
+                window.setCloudStatus('success'); 
+                window.updatePreview();
+                window.updateReportPreview();
+            } catch (error) {
+                console.error("Error sincronizando:", error);
+                window.setCloudStatus('error'); 
+            }
+        };
+
+        window.initDefaults = () => {
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            document.getElementById('f_date').value = `${yyyy}-${mm}-${dd}`;
+            
+            window.fetchGoogleSheetsData();
+            window.renderItems();
+            setTimeout(window.adjustPreviewScale, 100);
+        };
+
+        window.setMode = (mode) => {
+            viewMode = mode;
+            const btnDetalle = document.getElementById('btnModeDetalle');
+            const btnFinal = document.getElementById('btnModeFinal');
+            const descContainer = document.getElementById('generalDescContainer');
+
+            if (mode === 'detalle') {
+                btnDetalle.className = "px-3 py-1.5 text-xs font-bold rounded-md shadow-sm bg-white text-brand-tech transition-all";
+                btnFinal.className = "px-3 py-1.5 text-xs font-semibold rounded-md text-slate-500 hover:text-slate-800 transition-all bg-transparent";
+                descContainer.classList.add('hidden');
+            } else {
+                btnFinal.className = "px-3 py-1.5 text-xs font-bold rounded-md shadow-sm bg-white text-brand-tech transition-all";
+                btnDetalle.className = "px-3 py-1.5 text-xs font-semibold rounded-md text-slate-500 hover:text-slate-800 transition-all bg-transparent";
+                descContainer.classList.remove('hidden');
+            }
+            window.updatePreview();
+        };
+
+        window.moveItemUp = (index) => {
+            if (index > 0) {
+                const temp = items[index];
+                items[index] = items[index - 1];
+                items[index - 1] = temp;
+                window.renderItems();
+            }
+        };
+
+        window.moveItemDown = (index) => {
+            if (index < items.length - 1) {
+                const temp = items[index];
+                items[index] = items[index + 1];
+                items[index + 1] = temp;
+                window.renderItems();
+            }
+        };
+
+        window.renderItems = () => {
+            const tbody = document.getElementById('itemsBody');
+            tbody.innerHTML = '';
+            items.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="pr-2 pb-3 text-center align-middle">
+                        <div class="flex flex-col gap-0.5 items-center justify-center">
+                            <button onclick="window.moveItemUp(${index})" class="${index === 0 ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-brand-tech hover:bg-blue-50'} p-0.5 rounded transition-colors" ${index === 0 ? 'disabled' : ''} title="Mover Arriba">
+                                <i data-lucide="chevron-up" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="window.moveItemDown(${index})" class="${index === items.length - 1 ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-brand-tech hover:bg-blue-50'} p-0.5 rounded transition-colors" ${index === items.length - 1 ? 'disabled' : ''} title="Mover Abajo">
+                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="pr-2 pb-3 align-middle">
+                        <input type="number" min="1" value="${item.qty}" onchange="window.updateItem(${item.id}, 'qty', this.value)" class="w-full min-w-[50px] border border-slate-200 bg-slate-50 focus:bg-white rounded-lg px-2 py-2 text-sm text-center font-bold focus:border-brand-tech transition-colors">
+                    </td>
+                    <td class="pr-2 pb-3 align-middle">
+                        <input type="text" list="inventoryList" placeholder="Descripción" value="${item.desc}" oninput="window.updateItem(${item.id}, 'desc', this.value)" class="w-full border border-slate-200 bg-slate-50 focus:bg-white rounded-lg px-3 py-2 text-sm font-medium focus:border-brand-tech transition-colors">
+                    </td>
+                    <td class="pr-2 pb-3 align-middle">
+                        <div class="relative min-w-[90px]">
+                            <span class="absolute left-2.5 top-2 text-slate-400 font-bold">S/</span>
+                            <input type="number" id="cost_${item.id}" min="0" step="0.01" placeholder="Costo" value="${item.cost || ''}" oninput="window.updateItem(${item.id}, 'cost', this.value)" class="w-full bg-orange-50 border border-orange-200 text-orange-700 font-bold rounded-lg pl-8 pr-2 py-2 text-sm focus:bg-white focus:border-orange-500 transition-colors">
+                        </div>
+                    </td>
+                    <td class="pr-2 pb-3 align-middle">
+                        <div class="relative min-w-[90px]">
+                            <span class="absolute left-2.5 top-2 text-slate-400 font-bold">S/</span>
+                            <input type="number" id="price_${item.id}" min="0" step="0.01" placeholder="Venta" value="${item.price || ''}" oninput="window.updateItem(${item.id}, 'price', this.value)" class="w-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold rounded-lg pl-8 pr-2 py-2 text-sm focus:bg-white focus:border-emerald-500 transition-colors">
+                        </div>
+                    </td>
+                    <td class="pb-3 text-right align-middle">
+                        <button onclick="window.removeItem(${item.id})" class="text-red-400 hover:text-red-600 p-1.5 bg-red-50 hover:bg-red-100 rounded-md transition-colors" title="Eliminar">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+            window.updatePreview();
+        };
+
+        window.updateItem = (id, field, value) => {
+            const item = items.find(i => i.id === id);
+            if (item) {
+                if (field === 'desc') {
+                    item[field] = value.toUpperCase();
+                    // Buscar en el catálogo usando mayúsculas exactas
+                    const foundProd = productCatalog.find(p => (p.desc || '').toUpperCase() === value.trim().toUpperCase());
+                    if (foundProd) {
+                        item.cost = foundProd.cost;
+                        item.price = foundProd.price;
+                        document.getElementById(`cost_${id}`).value = foundProd.cost;
+                        document.getElementById(`price_${id}`).value = foundProd.price;
+                    }
+                } else {
+                    item[field] = parseFloat(value) || 0;
+                }
+                window.updatePreview();
+            }
+        };
+
+        window.addItemRow = () => {
+            const newId = items.length > 0 ? Math.max(...items.map(i => i.id)) + 1 : 1;
+            items.push({ id: newId, qty: 1, desc: '', cost: 0, price: 0 });
+            window.renderItems();
+        };
+
+        window.removeItem = (id) => {
+            items = items.filter(i => i.id !== id);
+            window.renderItems();
+        };
+
+        window.getCalculatedTotals = () => {
+            let totalCost = items.reduce((sum, item) => sum + (item.qty * (item.cost || 0)), 0);
+            let totalVenta = items.reduce((sum, item) => sum + (item.qty * (item.price || 0)), 0);
+
+            const manualCostInput = document.getElementById('f_manualCost')?.value;
+            const manualTotalInput = document.getElementById('f_manualTotal')?.value;
+
+            if (manualCostInput && manualCostInput.trim() !== '') totalCost = parseFloat(manualCostInput) || 0;
+            if (manualTotalInput && manualTotalInput.trim() !== '') totalVenta = parseFloat(manualTotalInput) || 0;
+
+            return { cost: totalCost, venta: totalVenta, ganancia: totalVenta - totalCost };
+        };
+
+        window.updatePreview = () => {
+            const syncText = (fromId, toId, defaultText = '') => {
+                const val = document.getElementById(fromId).value.trim();
+                document.getElementById(toId).innerText = val || defaultText;
+            };
+
+            syncText('f_clientName', 'p_clientName', '--------------------');
+            syncText('f_clientDoc', 'p_clientDoc', 'Sin DNI/RUC');
+            syncText('f_clientPhone', 'p_clientPhone', 'Sin teléfono');
+            syncText('f_clientAddress', 'p_clientAddress', 'Sin dirección registrada');
+            
+            const num = document.getElementById('f_profNumber').value.trim();
+            document.getElementById('p_profNumber').innerText = num || '0000';
+            
+            const dateVal = document.getElementById('f_date').value;
+            if(dateVal) {
+                const [y, m, d] = dateVal.split('-');
+                document.getElementById('p_date').innerText = `${d}/${m}/${y}`;
+            }
+
+            syncText('f_obsGarantia', 'p_obsGarantia', 'No especificada');
+            syncText('f_obsEntrega', 'p_obsEntrega', 'No especificada');
+            syncText('f_obsValidez', 'p_obsValidez', 'No especificada');
+            syncText('f_yape', 'p_yape', '917 309 964');
+
+            const yapeQrUrl = document.getElementById('f_yape_qr_url').value.trim();
+            if (yapeQrUrl) {
+                document.getElementById('p_yape_qr').src = yapeQrUrl;
+            } else {
+                const yapeNum = document.getElementById('f_yape').value.trim() || '917309964';
+                document.getElementById('p_yape_qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${yapeNum.replace(/\s+/g, '')}`;
+            }
+            
+            const notas = document.getElementById('f_obsNotas').value.trim();
+            const notasContainer = document.getElementById('p_obsNotasContainer');
+            if(notas) {
+                document.getElementById('p_obsNotas').innerText = notas;
+                notasContainer.classList.remove('hidden');
+            } else {
+                notasContainer.classList.add('hidden');
+            }
+
+            const pBody = document.getElementById('p_itemsBody');
+            pBody.innerHTML = '';
+            
+            let sumVenta = 0;
+            const priceHeader = document.querySelector('.p-col-price');
+
+            if (viewMode === 'detalle') {
+                priceHeader.style.display = ''; 
+                items.forEach((item, index) => {
+                    const rowTotal = item.qty * item.price;
+                    sumVenta += rowTotal;
+                    
+                    const displayPrice = item.price > 0 ? `S/ ${item.price.toFixed(2)}` : '';
+                    const displayRowTotal = rowTotal > 0 ? `S/ ${rowTotal.toFixed(2)}` : '';
+                    
+                    const tr = document.createElement('tr');
+                    tr.className = index % 2 === 0 ? 'bg-white/70 backdrop-blur-sm' : 'bg-white/40 backdrop-blur-sm';
+                    tr.innerHTML = `
+                        <td class="py-1.5 px-3 text-center font-bold text-gray-800 border-l border-white/50">${item.qty}</td>
+                        <td class="py-1.5 px-3 font-semibold text-gray-900">${item.desc || '-'}</td>
+                        <td class="py-1.5 px-3 text-right text-gray-900 font-mono p-col-price">${displayPrice}</td>
+                        <td class="py-1.5 px-3 text-right font-bold text-brand-dark font-mono border-r border-white/50">${displayRowTotal}</td>
+                    `;
+                    pBody.appendChild(tr);
+                });
+            } else {
+                priceHeader.style.display = 'none'; 
+                items.forEach(item => { sumVenta += (item.qty * item.price); });
+
+                const generalDesc = document.getElementById('f_generalDesc').value || 'Equipo Tecnológico según requerimientos';
+                const manualVal = document.getElementById('f_manualTotal')?.value;
+                let finalTotalResumen = sumVenta;
+                if (manualVal && manualVal.trim() !== '') finalTotalResumen = parseFloat(manualVal) || 0;
+                
+                const displayTotalResumen = finalTotalResumen > 0 ? `S/ ${finalTotalResumen.toFixed(2)}` : '';
+
+                const tr = document.createElement('tr');
+                tr.className = 'bg-white/70 backdrop-blur-sm border-b border-white/50';
+                tr.innerHTML = `
+                    <td class="py-3 px-3 text-center font-bold text-gray-800 border-l border-white/50">1</td>
+                    <td class="py-3 px-3 font-bold text-brand-tech text-sm">${generalDesc}</td>
+                    <td class="py-3 px-3 text-right font-black text-brand-dark text-base font-mono border-r border-white/50" colspan="2">${displayTotalResumen}</td>
+                `;
+                pBody.appendChild(tr);
+            }
+
+            const totals = window.getCalculatedTotals();
+            document.getElementById('p_subtotal').innerText = `S/ ${totals.venta.toFixed(2)}`;
+            document.getElementById('p_total').innerText = `S/ ${totals.venta.toFixed(2)}`;
+            
+            window.renderProformaImages();
+            window.adjustPreviewScale(); 
+        };
+
+        window.clearForm = () => {
+            if(confirm('¿Deseas crear una nueva proforma en blanco?')) {
+                // Limpiar campos
+                document.getElementById('f_clientName').value = '';
+                document.getElementById('f_clientDoc').value = '';
+                document.getElementById('f_clientPhone').value = '';
+                document.getElementById('f_clientAddress').value = '';
+                document.getElementById('f_yape').value = '917 309 964';
+                document.getElementById('f_yape_qr_url').value = '';
+                document.getElementById('f_obsNotas').value = '';
+                document.getElementById('f_generalDesc').value = '';
+                if(document.getElementById('f_manualTotal')) document.getElementById('f_manualTotal').value = '';
+                if(document.getElementById('f_manualCost')) document.getElementById('f_manualCost').value = '';
+                document.getElementById('f_status').value = 'Solo Proforma';
+                
+                // Poner la fecha de hoy
+                const now = new Date();
+                const yyyy = now.getFullYear();
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const dd = String(now.getDate()).padStart(2, '0');
+                document.getElementById('f_date').value = `${yyyy}-${mm}-${dd}`;
+                
+                // Reiniciar estado
+                window.currentEditId = null; 
+                items = [{ id: 1, qty: 1, desc: '', cost: 0, price: 0 }];
+                window.proformaImages = []; 
+
+                // Calcular el siguiente consecutivo al INSTANTE
+                let maxNum = 0;
+                if (proformasList && proformasList.length > 0) {
+                    proformasList.forEach(p => {
+                        const match = String(p.profNumber).match(/(\d+)$/);
+                        if (match) {
+                            const num = parseInt(match[1], 10);
+                            if (num > maxNum) maxNum = num;
+                        }
+                    });
+                }
+                const nextNum = maxNum > 0 ? maxNum + 1 : 1;
+                document.getElementById('f_profNumber').value = String(nextNum).padStart(4, '0');
+                
+                // Regresar al modo de vista Detallado
+                window.setMode('detalle');
+                window.renderItems();
+            }
+        };
+
+        window.generatePDF = (btn) => {
+            const scaler = document.getElementById('preview-scaler');
+            scaler.style.transform = 'scale(1)'; 
+            scaler.style.height = 'auto';
+
+            const wrapper = document.getElementById('proforma-pdf-wrapper');
+            const imagesWrapper = document.getElementById('preview-images-section');
+            
+            wrapper.classList.remove('gap-6'); 
+            if (imagesWrapper) imagesWrapper.classList.remove('gap-6');
+
+            const pages = wrapper.querySelectorAll('.a4-preview');
+            const originalStyles = [];
+            pages.forEach(p => {
+                originalStyles.push({ shadow: p.style.boxShadow, radius: p.style.borderRadius, margin: p.style.margin });
+                p.style.boxShadow = 'none';
+                p.style.borderRadius = '0px';
+                p.style.margin = '0px';
+            });
+
+            const opt = {
+                margin: 0,
+                filename: `Proforma_${document.getElementById('f_profNumber').value || 'Nueva'}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, scrollY: 0 }, 
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Generando...';
+            lucide.createIcons();
+
+            html2pdf().set(opt).from(wrapper).save().then(() => {
+                btn.innerHTML = originalText;
+                
+                wrapper.classList.add('gap-6');
+                if (imagesWrapper) imagesWrapper.classList.add('gap-6');
+                
+                pages.forEach((p, i) => {
+                    p.style.boxShadow = originalStyles[i].shadow;
+                    p.style.borderRadius = originalStyles[i].radius;
+                    p.style.margin = originalStyles[i].margin;
+                });
+                lucide.createIcons();
+                window.adjustPreviewScale(); 
+            });
+        };
+
+        // ---------------------------------------------------------
+        // ENVIAR A WHATSAPP
+        // ---------------------------------------------------------
+        window.sendWhatsApp = (btn) => {
+            const phoneRaw = document.getElementById('f_clientPhone').value.trim();
+            if (!phoneRaw) {
+                alert("Por favor, ingresa el número de teléfono en los 'Datos del Cliente' para poder enviarlo por WhatsApp.");
+                return;
+            }
+            
+            let phone = phoneRaw.replace(/\D/g, '');
+            if (phone.length === 9 && phone.startsWith('9')) {
+                phone = '51' + phone;
+            }
+
+            const clientName = document.getElementById('f_clientName').value.trim() || 'Estimado Cliente';
+            const rawProfNum = document.getElementById('f_profNumber').value.trim();
+            const profNum = rawProfNum.startsWith('PF-') ? rawProfNum : "PF-" + rawProfNum;
+            const totals = window.getCalculatedTotals();
+            const totalStr = totals.venta.toFixed(2);
+
+            const message = `Hola *${clientName}*, te saluda el equipo de *KGB Distribuidores*. 👋\n\nAdjunto enviamos tu cotización (*Ref: ${profNum}*) por una inversión de *S/ ${totalStr}*.\n\nEl PDF contiene todo el detalle técnico y nuestra garantía. 📄✨ Quedamos atentos para cualquier consulta o ajuste. 🤝`;
+
+            const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+            window.open(waUrl, '_blank');
+
+            const pdfBtn = document.querySelector('button[onclick="window.generatePDF(this)"]');
+            if (pdfBtn) window.generatePDF(pdfBtn);
+        };
+
+        // ---------------------------------------------------------
+        // INDICADOR DE NUBE
+        // ---------------------------------------------------------
+        window.setCloudStatus = (status) => {
+            const ind = document.getElementById('cloudSyncIndicator');
+            if(status === 'syncing') {
+                ind.innerHTML = `<i data-lucide="refresh-cw" class="w-3 h-3 text-blue-500 animate-spin"></i> <span class="text-[10px] text-blue-600 font-bold uppercase tracking-wider">Sincronizando...</span>`;
+            } else if(status === 'success') {
+                ind.innerHTML = `<i data-lucide="check-circle" class="w-3 h-3 text-emerald-500"></i> <span class="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Sincronizado</span>`;
+                setTimeout(() => {
+                    ind.innerHTML = `<div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div> <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Nube Conectada</span>`;
+                    lucide.createIcons();
+                }, 3000);
+            } else if(status === 'error') {
+                ind.innerHTML = `<i data-lucide="cloud-off" class="w-3 h-3 text-red-500"></i> <span class="text-[10px] text-red-600 font-bold uppercase tracking-wider">Error de Red</span>`;
+            }
+            lucide.createIcons();
+        };
+
+        // ==========================================
+        // 2. FUNCIÓN MAESTRA PARA GUARDAR TODO
+        // ==========================================
+        window.saveProforma = async (btn) => {
+            if (btn.disabled) return;
+            const originalText = btn.innerHTML;
+            
+            try {
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Guardando...';
+                btn.disabled = true;
+                btn.classList.add('opacity-75', 'cursor-wait');
+                lucide.createIcons();
+
+                const totals = window.getCalculatedTotals();
+                const rawProfNum = document.getElementById('f_profNumber').value.trim();
+                
+                const dataObj = {
+                    id: window.currentEditId || ("PF_" + new Date().getTime()),
+                    profNumber: rawProfNum.startsWith('PF-') ? rawProfNum : "PF-" + rawProfNum,
+                    date: document.getElementById('f_date').value,
+                    clientName: document.getElementById('f_clientName').value || 'Sin Nombre',
+                    clientDoc: document.getElementById('f_clientDoc').value || '',
+                    clientPhone: document.getElementById('f_clientPhone').value || '',
+                    clientAddress: document.getElementById('f_clientAddress').value || '',
+                    cost: totals.cost,       
+                    total: totals.venta,     
+                    profit: totals.ganancia, 
+                    status: document.getElementById('f_status').value, 
+                    viewMode: viewMode,
+                    generalDesc: document.getElementById('f_generalDesc').value || '',
+                    manualCost: document.getElementById('f_manualCost').value || '',
+                    manualTotal: document.getElementById('f_manualTotal').value || '',
+                    yape: document.getElementById('f_yape').value || '917 309 964',
+                    yapeQrUrl: document.getElementById('f_yape_qr_url').value || '',
+                    obsGarantia: document.getElementById('f_obsGarantia').value || '',
+                    obsEntrega: document.getElementById('f_obsEntrega').value || '',
+                    obsValidez: document.getElementById('f_obsValidez').value || '',
+                    obsNotas: document.getElementById('f_obsNotas').value || '',
+                    items: items.map(i => ({ qty: i.qty, desc: (i.desc || '').toUpperCase(), cost: i.cost || 0, price: i.price || 0 }))
+                };
+
+                // Enviar al Servidor
+                window.setCloudStatus('syncing');
+                const response = await fetch(window.WEBHOOK_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: "save_proforma", data: dataObj })
+                });
+                
+                if(response.ok) {
+                    window.setCloudStatus('success');
+                    window.currentEditId = dataObj.id; 
+                    
+                    const idx = proformasList.findIndex(p => p.id === dataObj.id);
+                    if (idx > -1) {
+                        proformasList[idx] = dataObj;
+                    } else {
+                        proformasList.unshift(dataObj);
+                    }
+                    localStorage.setItem('proformasList_kgb', JSON.stringify(proformasList));
+                    renderHistoryTable();
+                } else {
+                    throw new Error("Fallo la comunicación con Google Sheets");
+                }
+
+                // GUARDAR NUEVOS PRODUCTOS AL CATÁLOGO
+                let isCatalogUpdated = false;
+                for (const item of dataObj.items) {
+                    if (item.desc && item.desc.trim() !== '') {
+                        const upperDesc = item.desc.trim().toUpperCase();
+                        const exists = productCatalog.some(p => (p.desc || '').toUpperCase() === upperDesc);
+                        
+                        if (!exists) {
+                            productCatalog.push({ id: 'mem_' + Date.now(), desc: upperDesc, cost: item.cost || 0, price: item.price || 0 });
+                            isCatalogUpdated = true;
+                            fetch(window.WEBHOOK_URL, {
+                                method: 'POST',
+                                body: JSON.stringify({ action: "save_producto", data: {desc: upperDesc, cost: item.cost, price: item.price} })
+                            }).catch(()=>{});
+                        }
+                    }
+                }
+                
+                if (isCatalogUpdated) {
+                    localStorage.setItem('productCatalog_kgb', JSON.stringify(productCatalog));
+                    renderCatalogTable();
+                    updateDatalist();
+                }
+
+                btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> ¡Guardado!';
+                lucide.createIcons();
+                
+            } catch (error) { 
+                alert("Error técnico al guardar en la nube. Verifica tu conexión."); 
+                console.error(error);
+                btn.innerHTML = '<i data-lucide="x" class="w-4 h-4"></i> Error';
+                window.setCloudStatus('error');
+                lucide.createIcons();
+            } finally {
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-75', 'cursor-wait');
+                    lucide.createIcons();
+                }, 2500);
+            }
+        };
+
+        // ---------------------------------------------------------
+        // LOGICA DE EVIDENCIAS / IMÁGENES
+        // ---------------------------------------------------------
+        document.getElementById('image-upload-input').addEventListener('change', function(e) {
+            window.handleImageFiles(e.target.files);
+            this.value = '';
+        });
+
+        document.addEventListener('paste', function(e) {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            
+            if(e.clipboardData && e.clipboardData.items) {
+                const cb_items = e.clipboardData.items;
+                const imageFiles = [];
+                for (let i = 0; i < cb_items.length; i++) {
+                    if (cb_items[i].type.indexOf('image') !== -1) {
+                        imageFiles.push(cb_items[i].getAsFile());
+                    }
+                }
+                if(imageFiles.length > 0) {
+                    e.preventDefault();
+                    window.handleImageFiles(imageFiles);
+                }
+            }
+        });
+
+        window.handleImageFiles = (files) => {
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    window.proformaImages.push(event.target.result);
+                    window.updatePreview(); 
+                };
+                reader.readAsDataURL(file);
+            });
+        };
+
+        window.removeImage = (index) => {
+            window.proformaImages.splice(index, 1);
+            window.updatePreview();
+        };
+
+        window.renderProformaImages = () => {
+            const thumbContainer = document.getElementById('image-thumbnails');
+            if (window.proformaImages.length === 0) {
+                thumbContainer.classList.add('hidden');
+                thumbContainer.innerHTML = '';
+            } else {
+                thumbContainer.classList.remove('hidden');
+                thumbContainer.innerHTML = window.proformaImages.map((src, index) => `
+                    <div class="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group bg-slate-100">
+                        <img src="${src}" class="w-full h-full object-cover">
+                        <button onclick="window.removeImage(${index})" class="absolute top-1 right-1 bg-red-500 text-white rounded-md p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md">
+                            <i data-lucide="x" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            }
+
+            const imagesWrapper = document.getElementById('preview-images-section');
+            if(!imagesWrapper) return;
+            imagesWrapper.innerHTML = '';
+            
+            if (window.proformaImages.length === 0) return;
+
+            let currentPage = null;
+            let imageGrid = null;
+
+            window.proformaImages.forEach((imgSrc, index) => {
+                if (index % 2 === 0) {
+                    currentPage = document.createElement('div');
+                    currentPage.className = 'a4-preview page-break bg-white flex flex-col relative z-0 transition-all duration-300';
+                    currentPage.innerHTML = `
+                        <img src="https://i.imgur.com/fObiYn6.png" alt="Fondo" class="absolute inset-0 w-full h-full object-cover -z-10 opacity-40">
+                        <div class="flex justify-between items-end mb-6 pb-4 border-b-2 border-brand-corp/30 shrink-0">
+                            <div class="flex items-center gap-4">
+                                <img src="https://i.imgur.com/Dla3rBv.png" alt="Logo" class="h-10 object-contain">
+                                <div>
+                                    <h2 class="text-xl font-black tracking-widest text-brand-corp uppercase">ANEXOS - IMÁGENES</h2>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-bold text-gray-800">Ref: <span class="text-brand-tech">PF-${document.getElementById('f_profNumber').value || '0000'}</span></p>
+                            </div>
+                        </div>
+                    `;
+                    imageGrid = document.createElement('div');
+                    imageGrid.className = 'flex-1 grid grid-rows-2 gap-6 pb-8 min-h-0'; 
+                    currentPage.appendChild(imageGrid);
+                    imagesWrapper.appendChild(currentPage);
+                }
+                
+                const imgContainer = document.createElement('div');
+                imgContainer.className = 'w-full h-full flex items-center justify-center p-2 bg-white/70 backdrop-blur-sm border border-slate-300 rounded-xl shadow-inner overflow-hidden min-h-0';
+                imgContainer.innerHTML = `<img src="${imgSrc}" class="max-w-full max-h-full object-contain rounded-lg">`;
+                imageGrid.appendChild(imgContainer);
+            });
+        };
+
+        // ---------------------------------------------------------
+        // BASE DE DATOS PROFORMAS Y DASHBOARD FINANCIERO
+        // ---------------------------------------------------------
+        window.openProfitModal = () => {
+            const now = new Date();
+            const yyyy = now.getFullYear().toString();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            
+            const todayStr = `${yyyy}-${mm}-${dd}`;
+            const monthStr = `${yyyy}-${mm}`;
+            const yearStr = `${yyyy}`;
+
+            let globalInv = 0, globalVen = 0, globalGan = 0;
+
+            let hoyIngreso = 0, hoyGanancia = 0;
+            let mesIngreso = 0, mesGanancia = 0;
+            let anoIngreso = 0, anoGanancia = 0;
+
+            proformasList.forEach(p => {
+                // Sumar ABSOLUTAMENTE TODO solo si está en estado 'Terminado'
+                if (p.status === 'Terminado') {
+                    const pCost = p.cost || 0;
+                    const pTotal = p.total || 0;
+                    const pProfit = p.profit || 0;
+                    const pDate = p.date; 
+
+                    // Sumas Globales (El cuadro de arriba)
+                    globalInv += pCost;
+                    globalVen += pTotal;
+                    globalGan += pProfit;
+
+                    // Sumas por Fechas (Los cuadros de abajo)
+                    if (pDate === todayStr) {
+                        hoyIngreso += pTotal;
+                        hoyGanancia += pProfit;
+                    }
+                    if (pDate.startsWith(monthStr)) {
+                        mesIngreso += pTotal;
+                        mesGanancia += pProfit;
+                    }
+                    if (pDate.startsWith(yearStr)) {
+                        anoIngreso += pTotal;
+                        anoGanancia += pProfit;
+                    }
+                }
+            });
+
+            // Actualizar cuadros superiores (Globales)
+            document.getElementById('m_inv').innerText = `S/ ${globalInv.toFixed(2)}`;
+            document.getElementById('m_ven').innerText = `S/ ${globalVen.toFixed(2)}`;
+            document.getElementById('m_gan').innerText = `S/ ${globalGan.toFixed(2)}`;
+
+            // Actualizar cuadros inferiores (Reales por fecha)
+            document.getElementById('m_hoy_ingreso').innerText = `S/ ${hoyIngreso.toFixed(2)}`;
+            document.getElementById('m_hoy_ganancia').innerText = `S/ ${hoyGanancia.toFixed(2)}`;
+            document.getElementById('m_mes_ingreso').innerText = `S/ ${mesIngreso.toFixed(2)}`;
+            document.getElementById('m_mes_ganancia').innerText = `S/ ${mesGanancia.toFixed(2)}`;
+            document.getElementById('m_ano_ingreso').innerText = `S/ ${anoIngreso.toFixed(2)}`;
+            document.getElementById('m_ano_ganancia').innerText = `S/ ${anoGanancia.toFixed(2)}`;
+
+            document.getElementById('profitModal').classList.remove('hidden');
+        };
+        
+        window.closeProfitModal = () => { document.getElementById('profitModal').classList.add('hidden'); };
+
+        function renderHistoryTable() {
+            const tbody = document.getElementById('dbTableBody');
+            tbody.innerHTML = '';
+            let tPendiente = 0; let tIngresoTotal = 0; let tGananciaLibre = 0;
+
+            const searchInput = document.getElementById('searchHistory');
+            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+
+            const filteredProformas = proformasList.filter(prof => {
+                if (!prof) return false;
+                const searchStr = `${prof.clientName || ''} ${prof.profNumber || ''} ${prof.clientDoc || ''} ${prof.date || ''}`.toLowerCase();
+                return searchStr.includes(searchTerm);
+            });
+
+            filteredProformas.forEach(prof => {
+                if(prof.status === 'Solo Proforma' || prof.status === 'Aprobado') tPendiente += (prof.total || 0); 
+                if(prof.status === 'Terminado') { tIngresoTotal += (prof.total || 0); tGananciaLibre += (prof.profit || 0); }
+
+                let statusColors = prof.status === 'Solo Proforma' ? "bg-blue-50 text-blue-600 border border-blue-200" : 
+                                   prof.status === 'Aprobado' ? "bg-yellow-50 text-yellow-600 border border-yellow-200" : "bg-emerald-50 text-emerald-600 border border-emerald-200";
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-3 px-4 text-slate-500 font-semibold">${prof.date}</td>
+                    <td class="py-3 px-4 font-black text-brand-corp">${prof.profNumber}</td>
+                    <td class="py-3 px-4 font-semibold text-slate-800 truncate max-w-[150px]">${prof.clientName}</td>
+                    <td class="py-3 px-4 text-right font-mono font-bold text-orange-500">S/ ${(prof.cost||0).toFixed(2)}</td>
+                    <td class="py-3 px-4 text-right font-mono font-black text-slate-800">S/ ${prof.total.toFixed(2)}</td>
+                    <td class="py-3 px-4 text-right font-mono font-black text-emerald-500">S/ ${(prof.profit||0).toFixed(2)}</td>
+                    <td class="py-3 px-4 text-center">
+                        <select onchange="window.updateStatus('${prof.id}', this.value)" class="text-[10px] font-bold px-2.5 py-1.5 rounded-md outline-none cursor-pointer shadow-sm ${statusColors} transition-colors">
+                            <option value="Solo Proforma" ${prof.status === 'Solo Proforma' ? 'selected' : ''}>📝 Proforma</option>
+                            <option value="Aprobado" ${prof.status === 'Aprobado' ? 'selected' : ''}>👍 Aprobado</option>
+                            <option value="Terminado" ${prof.status === 'Terminado' ? 'selected' : ''}>✅ Terminado</option>
+                        </select>
+                    </td>
+                    <td class="py-3 px-4 text-center whitespace-nowrap">
+                        <button onclick="window.loadProforma('${prof.id}')" title="Editar/Cargar Proforma" class="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-1.5 rounded transition-colors mr-1"><i data-lucide="edit" class="w-4 h-4"></i></button>
+                        <button onclick="window.deleteProforma('${prof.id}')" title="Eliminar" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('h_totalCount').innerText = filteredProformas.length;
+            document.getElementById('h_totalPendiente').innerText = `S/ ${tPendiente.toFixed(2)}`;
+            document.getElementById('h_totalIngreso').innerText = `S/ ${tIngresoTotal.toFixed(2)}`;
+            document.getElementById('h_totalGanancia').innerText = `S/ ${tGananciaLibre.toFixed(2)}`;
+            lucide.createIcons();
+        }
+
+        window.loadProforma = (id) => {
+            const prof = proformasList.find(p => p.id === id);
+            if (!prof) return;
+
+            window.currentEditId = id; 
+
+            let rawNum = prof.profNumber;
+            if(rawNum.startsWith('PF-')) rawNum = rawNum.substring(3);
+            
+            document.getElementById('f_profNumber').value = rawNum;
+            document.getElementById('f_date').value = prof.date || '';
+            document.getElementById('f_status').value = prof.status || 'Solo Proforma';
+            document.getElementById('f_clientName').value = prof.clientName === 'Sin Nombre' ? '' : prof.clientName;
+            document.getElementById('f_clientDoc').value = prof.clientDoc || '';
+            document.getElementById('f_clientPhone').value = prof.clientPhone || '';
+            document.getElementById('f_clientAddress').value = prof.clientAddress || '';
+            
+            document.getElementById('f_generalDesc').value = prof.generalDesc || '';
+            document.getElementById('f_manualCost').value = prof.manualCost || '';
+            document.getElementById('f_manualTotal').value = prof.manualTotal || '';
+            
+            document.getElementById('f_yape').value = prof.yape || '917 309 964';
+            document.getElementById('f_yape_qr_url').value = prof.yapeQrUrl || '';
+            document.getElementById('f_obsGarantia').value = prof.obsGarantia || '12 meses contra defectos de fábrica';
+            document.getElementById('f_obsEntrega').value = prof.obsEntrega || '24 a 48 horas tras confirmación';
+            document.getElementById('f_obsValidez').value = prof.obsValidez || '3 días útiles';
+            document.getElementById('f_obsNotas').value = prof.obsNotas || '';
+
+            if (prof.items && prof.items.length > 0) {
+                items = prof.items.map((i, index) => ({ id: index + 1, qty: i.qty, desc: i.desc, cost: i.cost, price: i.price }));
+            } else {
+                items = [{ id: 1, qty: 1, desc: '', cost: 0, price: 0 }];
+            }
+
+            window.proformaImages = []; 
+            window.setMode(prof.viewMode || 'detalle');
+            window.renderItems();
+            window.updatePreview();
+            window.closeHistory();
+            
+            const numInput = document.getElementById('f_profNumber');
+            numInput.classList.add('bg-yellow-100', 'text-yellow-800');
+            setTimeout(() => numInput.classList.remove('bg-yellow-100', 'text-yellow-800'), 1500);
+        };
+
+        window.updateStatus = async (id, newStatus) => {
+            try {
+                const profToSync = proformasList.find(p => p.id === id);
+                if (profToSync) {
+                    profToSync.status = newStatus;
+                    renderHistoryTable();
+                    
+                    window.setCloudStatus('syncing');
+                    await fetch(window.WEBHOOK_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: "save_proforma", data: profToSync })
+                    });
+                    window.setCloudStatus('success');
+                }
+            } catch (error) { 
+                console.error("Error actualizando estado:", error); 
+                window.setCloudStatus('error');
+            }
+        };
+
+        window.deleteProforma = async (id) => {
+            if (confirm("¿Eliminar permanentemente proforma de la Base de Datos?")) {
+                try {
+                    window.setCloudStatus('syncing');
+                    await fetch(window.WEBHOOK_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: "delete_proforma", id: id })
+                    });
+                    
+                    proformasList = proformasList.filter(p => p.id !== id);
+                    renderHistoryTable();
+                    window.setCloudStatus('success');
+                } catch(e) {
+                    alert("Error eliminando en la nube.");
+                    window.setCloudStatus('error');
+                }
+            }
+        };
+
+        window.openHistory = () => document.getElementById('historyModal').classList.remove('hidden');
+        window.closeHistory = () => document.getElementById('historyModal').classList.add('hidden');
+
+        // ---------------------------------------------------------
+        // GESTIÓN DE CONTRATOS EDITABLES
+        // ---------------------------------------------------------
+        window.openContractModal = () => {
+            renderContractTable();
+            document.getElementById('contractModal').classList.remove('hidden');
+        };
+        
+        window.closeContractModal = () => document.getElementById('contractModal').classList.add('hidden');
+
+        window.updateContractAmount = (id, total) => {
+            let pct = parseFloat(document.getElementById(`c_pct_${id}`).value) || 0;
+            if(pct > 100) pct = 100;
+            if(pct < 0) pct = 0;
+            const amount = (total * (pct / 100)).toFixed(2);
+            document.getElementById(`c_amt_${id}`).innerText = `S/ ${amount}`;
+        };
+
+        function renderContractTable() {
+            const tbody = document.getElementById('contractTableBody');
+            tbody.innerHTML = '';
+            
+            const eligibleProformas = proformasList.filter(p => p.status === 'Aprobado' || p.status === 'Terminado');
+
+            if(eligibleProformas.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-400 font-medium">No hay proformas aprobadas para generar contratos.</td></tr>`;
+                return;
+            }
+
+            eligibleProformas.forEach(prof => {
+                const mitad = (prof.total / 2);
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-3 px-4 text-slate-500 font-semibold">${prof.date}</td>
+                    <td class="py-3 px-4 font-black text-brand-corp">${prof.profNumber}</td>
+                    <td class="py-3 px-4 font-semibold text-slate-800">${prof.clientName}</td>
+                    <td class="py-3 px-4 text-right font-mono font-black text-slate-800">S/ ${prof.total.toFixed(2)}</td>
+                    <td class="py-3 px-4 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <input type="number" id="c_pct_${prof.id}" value="50" min="0" max="100" class="w-16 bg-white border border-rose-200 rounded-md px-1 py-1.5 text-center text-rose-700 font-black focus:border-rose-500 focus:ring-1 outline-none transition-colors" oninput="window.updateContractAmount('${prof.id}', ${prof.total})">
+                            <span class="text-rose-500 font-bold text-xs">%</span>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 text-right font-mono font-black text-rose-600 bg-rose-50/50" id="c_amt_${prof.id}">S/ ${mitad.toFixed(2)}</td>
+                    <td class="py-3 px-4 text-center">
+                        <button onclick="window.generateContractPDF('${prof.id}', this)" class="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg border border-rose-200 font-bold transition-all shadow-sm hover:shadow flex items-center gap-1.5 mx-auto">
+                            <i data-lucide="printer" class="w-3.5 h-3.5"></i> Imprimir
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        window.generateContractPDF = (id, btn) => {
+            const prof = proformasList.find(p => p.id === id);
+            if (!prof) return alert("Error: Proforma no encontrada.");
+
+            let pct = parseFloat(document.getElementById(`c_pct_${id}`).value);
+            if (isNaN(pct) || pct < 0) pct = 0;
+            if (pct > 100) pct = 100;
+
+            const total = prof.total;
+            const adelanto = total * (pct / 100);
+            const saldo = total - adelanto;
+
+            document.getElementById('c_profNumber').innerText = prof.profNumber;
+            document.getElementById('c_profNumber_2').innerText = prof.profNumber;
+            document.getElementById('c_clientName').innerText = prof.clientName;
+            document.getElementById('c_clientDoc').innerText = prof.clientDoc || '___________';
+            document.getElementById('c_clientName_sign').innerText = prof.clientName;
+            document.getElementById('c_clientDoc_sign').innerText = prof.clientDoc || '___________';
+            
+            const dateParts = prof.date.split('-');
+            const formattedDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : prof.date;
+            document.getElementById('c_date').innerText = formattedDate;
+            
+            document.getElementById('c_total').innerText = total.toFixed(2);
+
+            const termsContainer = document.getElementById('c_payment_terms');
+            if (pct === 100) {
+                termsContainer.innerHTML = `<p>EL CLIENTE abonará dicho monto bajo la siguiente modalidad:<br>
+                1. <strong>Pago Total (100%):</strong> A la firma del presente documento, EL CLIENTE abona la suma de <strong>S/ ${adelanto.toFixed(2)}</strong> (Soles), cancelando el total de los equipos y/o servicios acordados.</p>`;
+            } else if (pct === 0) {
+                 termsContainer.innerHTML = `<p>EL CLIENTE abonará dicho monto bajo la siguiente modalidad:<br>
+                1. <strong>Pago al Finalizar (100%):</strong> El monto total de <strong>S/ ${saldo.toFixed(2)}</strong> (Soles) será cancelado íntegramente contra entrega y conformidad de los equipos y/o servicios brindados.</p>`;
+            } else {
+                const remainderPct = (100 - pct).toFixed(2).replace(/\.00$/, ''); 
+                const formattedPct = pct.toFixed(2).replace(/\.00$/, '');
+                termsContainer.innerHTML = `<p>EL CLIENTE abonará dicho monto bajo la siguiente modalidad:<br>
+                1. <strong>Pago de Adelanto (${formattedPct}%):</strong> A la firma del presente documento, EL CLIENTE abona la suma de <strong>S/ ${adelanto.toFixed(2)}</strong> (Soles), en calidad de anticipo para el inicio del servicio y adquisición de componentes.<br>
+                2. <strong>Pago de Saldo (${remainderPct}%):</strong> El saldo restante de <strong>S/ ${saldo.toFixed(2)}</strong> (Soles) será cancelado contra entrega y conformidad de los equipos y/o servicios brindados.</p>`;
+            }
+
+            const element = document.getElementById('contract-template');
+            element.style.transform = 'scale(1)';
+
+            const opt = {
+                margin: 0,
+                filename: `Contrato_${prof.profNumber}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, scrollY: 0 }, 
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Generando...';
+            btn.classList.add('opacity-70', 'cursor-not-allowed');
+            lucide.createIcons();
+
+            html2pdf().set(opt).from(element).toPdf().get('pdf').then(function (pdf) {
+                const totalPages = pdf.internal.getNumberOfPages();
+                for (let i = totalPages; i > 1; i--) { pdf.deletePage(i); } 
+            }).save().then(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove('opacity-70', 'cursor-not-allowed');
+                lucide.createIcons();
+            });
+        };
+
+        // ---------------------------------------------------------
+        // CATÁLOGO DE PRODUCTOS 
+        // ---------------------------------------------------------
+        function renderCatalogTable() {
+            const tbody = document.getElementById('catalogTableBody');
+            tbody.innerHTML = '';
+            productCatalog.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-2.5 px-4 font-semibold text-slate-800">${p.desc}</td>
+                    <td class="py-2.5 px-4 text-right text-orange-600 font-mono font-bold">S/ ${(p.cost||0).toFixed(2)}</td>
+                    <td class="py-2.5 px-4 text-right text-emerald-600 font-mono font-bold">S/ ${(p.price||0).toFixed(2)}</td>
+                    <td class="py-2.5 px-4 text-center">
+                        <button onclick="window.deleteCatalogItem('${p.id}')" class="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        function updateDatalist() {
+            const dl = document.getElementById('inventoryList');
+            dl.innerHTML = '';
+            
+            // Eliminar duplicados visuales en la lista desplegable
+            const seen = new Set();
+            productCatalog.forEach(p => {
+                const desc = (p.desc || '').trim().toUpperCase();
+                if(desc && !seen.has(desc)) {
+                    seen.add(desc);
+                    const opt = document.createElement('option');
+                    opt.value = desc;
+                    dl.appendChild(opt);
+                }
+            });
+        }
+
+        window.addCatalogItem = async () => {
+            const desc = document.getElementById('cat_desc').value.trim().toUpperCase();
+            const cost = parseFloat(document.getElementById('cat_cost').value) || 0;
+            const price = parseFloat(document.getElementById('cat_price').value) || 0;
+            
+            if(!desc) return alert("Escribe la descripción del producto.");
+
+            document.getElementById('cat_desc').value = '';
+            document.getElementById('cat_cost').value = '';
+            document.getElementById('cat_price').value = '';
+
+            try {
+                window.setCloudStatus('syncing');
+                const response = await fetch(window.WEBHOOK_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: "save_producto", data: {desc, cost, price} })
+                });
+                const resData = await response.json();
+                
+                if (resData.status === "ok") {
+                    productCatalog.push({ id: resData.id, desc, cost, price });
+                    localStorage.setItem('productCatalog_kgb', JSON.stringify(productCatalog));
+                    renderCatalogTable();
+                    updateDatalist();
+                    window.setCloudStatus('success');
+                } else { throw new Error(); }
+            } catch (error) { 
+                alert("Error guardando catálogo en la nube.");
+                window.setCloudStatus('error');
+            }
+        };
+
+        window.deleteCatalogItem = async (id) => {
+            if(confirm("¿Eliminar este producto del catálogo?")) {
+                try {
+                    window.setCloudStatus('syncing');
+                    await fetch(window.WEBHOOK_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: "delete_producto", id: id })
+                    });
+                    
+                    productCatalog = productCatalog.filter(c => c.id !== id);
+                    renderCatalogTable();
+                    updateDatalist();
+                    window.setCloudStatus('success');
+                } catch(e) { window.setCloudStatus('error'); }
+            }
+        };
+
+        window.openCatalogModal = () => document.getElementById('catalogModal').classList.remove('hidden');
+        window.closeCatalogModal = () => document.getElementById('catalogModal').classList.add('hidden');
+
+        // ---------------------------------------------------------
+        // LÓGICA DE INFORMES TÉCNICOS
+        // ---------------------------------------------------------
+        window.openReportModal = () => {
+            const now = new Date();
+            if(!document.getElementById('r_date').value) {
+                document.getElementById('r_date').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            }
+            document.getElementById('reportModal').classList.remove('hidden');
+            window.updateReportPreview();
+            setTimeout(window.adjustReportScale, 100);
+        };
+
+        window.closeReportModal = () => {
+            document.getElementById('reportModal').classList.add('hidden');
+        };
+
+        window.adjustReportScale = () => {
+            const wrapper = document.getElementById('report-preview-wrapper');
+            const scaler = document.getElementById('report-preview-scaler');
+            if(wrapper && scaler) {
+                const availableWidth = wrapper.clientWidth - 32;
+                let scale = availableWidth / 794; 
+                if(scale > 1) scale = 1;
+                scaler.style.transform = `scale(${scale})`;
+                scaler.style.height = `${1123 * scale}px`;
+            }
+        };
+        window.addEventListener('resize', window.adjustReportScale);
+
+        window.updateReportPreview = () => {
+            const syncText = (fromId, toId, defaultText = '') => {
+                const val = document.getElementById(fromId).value.trim();
+                const el = document.getElementById(toId);
+                if (el) el.innerText = val || defaultText;
+            };
+
+            syncText('r_num', 'pr_num', '0000');
+            syncText('r_clientName', 'pr_clientName', '----------------');
+            syncText('r_clientDoc', 'pr_clientDoc', '--');
+            syncText('r_clientPhone', 'pr_clientPhone', '--');
+            syncText('r_equipment', 'pr_equipment', '----------------');
+            syncText('r_brand', 'pr_brand', '--');
+            syncText('r_serial', 'pr_serial', '--');
+            
+            syncText('r_issue', 'pr_issue', 'No especificado.');
+            syncText('r_diagnosis', 'pr_diagnosis', 'En revisión...');
+            syncText('r_solution', 'pr_solution', 'Pendiente.');
+
+            const dateVal = document.getElementById('r_date').value;
+            if(dateVal) {
+                const [y, m, d] = dateVal.split('-');
+                document.getElementById('pr_date').innerText = `${d}/${m}/${y}`;
+            }
+        };
+
+        window.generateReportPDF = (btn) => {
+            const scaler = document.getElementById('report-preview-scaler');
+            scaler.style.transform = 'scale(1)'; 
+            scaler.style.height = 'auto';
+
+            const element = document.getElementById('report-preview-section');
+            const originalShadow = element.style.boxShadow;
+            element.style.boxShadow = 'none';
+
+            const opt = {
+                margin: 0,
+                filename: `Informe_Tecnico_IT-${document.getElementById('r_num').value || '0001'}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, scrollY: 0 }, 
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Generando...';
+            lucide.createIcons();
+
+            html2pdf().set(opt).from(element).toPdf().get('pdf').then(function (pdf) {
+                const totalPages = pdf.internal.getNumberOfPages();
+                for (let i = totalPages; i > 1; i--) { pdf.deletePage(i); } 
+            }).save().then(() => {
+                btn.innerHTML = originalText;
+                element.style.boxShadow = originalShadow;
+                lucide.createIcons();
+                window.adjustReportScale(); 
+            });
+        };
+
+        window.sendReportWhatsApp = (btn) => {
+            const phoneRaw = document.getElementById('r_clientPhone').value.trim();
+            if (!phoneRaw) {
+                alert("Por favor, ingresa el número de teléfono en los 'Datos del Cliente' del Informe Técnico para poder enviarlo.");
+                return;
+            }
+            
+            let phone = phoneRaw.replace(/\D/g, '');
+            if (phone.length === 9 && phone.startsWith('9')) {
+                phone = '51' + phone;
+            }
+
+            const clientName = document.getElementById('r_clientName').value.trim() || 'Estimado Cliente';
+            const rawNum = document.getElementById('r_num').value.trim();
+            const repNum = rawNum.startsWith('IT-') ? rawNum : "IT-" + rawNum;
+            const equipment = document.getElementById('r_equipment').value.trim() || 'equipo';
+
+            const message = `Hola *${clientName}*, te saluda el Dpto. Técnico de *KGB Distribuidores*. 👋\n\nTe enviamos adjunto el *Informe Técnico (${repNum})* con el diagnóstico de tu ${equipment}.\n\nEl PDF contiene el detalle de la revisión y nuestras recomendaciones. 📄✨ Quedamos a tu entera disposición. 🤝`;
+
+            const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+            window.open(waUrl, '_blank');
+
+            const pdfBtn = document.querySelector('#reportModal button[onclick="window.generateReportPDF(this)"]');
+            if (pdfBtn) window.generateReportPDF(pdfBtn);
+        };
+
+        window.saveReportToCloud = async (btn) => {
+            if (btn.disabled) return;
+            const originalText = btn.innerHTML;
+            
+            try {
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Guardando...';
+                btn.disabled = true;
+                btn.classList.add('opacity-75', 'cursor-wait');
+                lucide.createIcons();
+
+                const rawNum = document.getElementById('r_num').value.trim();
+                const dataObj = {
+                    num: rawNum.startsWith('IT-') ? rawNum : "IT-" + rawNum,
+                    date: document.getElementById('r_date').value,
+                    clientName: document.getElementById('r_clientName').value || 'Sin Nombre',
+                    clientDoc: document.getElementById('r_clientDoc').value || '',
+                    clientPhone: document.getElementById('r_clientPhone').value || '',
+                    equipment: document.getElementById('r_equipment').value || 'No especificado',
+                    brand: document.getElementById('r_brand').value || '',
+                    serial: document.getElementById('r_serial').value || '',
+                    issue: document.getElementById('r_issue').value || '',
+                    diagnosis: document.getElementById('r_diagnosis').value || '',
+                    solution: document.getElementById('r_solution').value || ''
+                };
+
+                window.setCloudStatus('syncing');
+                const response = await fetch(window.WEBHOOK_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: "save_informe", data: dataObj })
+                });
+
+                if(response.ok) {
+                    window.setCloudStatus('success');
+                    btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> ¡Guardado!';
+                    
+                    const currentRepNum = parseInt(rawNum.replace(/\D/g, ''), 10);
+                    if (!isNaN(currentRepNum)) {
+                        document.getElementById('r_num').value = String(currentRepNum + 1).padStart(4, '0');
+                        window.updateReportPreview();
+                    }
+                } else {
+                    throw new Error("Fallo en la nube");
+                }
+                lucide.createIcons();
+
+            } catch (error) {
+                alert("Error al guardar el informe en la nube.");
+                btn.innerHTML = '<i data-lucide="x" class="w-4 h-4"></i> Error';
+                lucide.createIcons();
+                window.setCloudStatus('error');
+            } finally {
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-75', 'cursor-wait');
+                    lucide.createIcons();
+                }, 2500);
+            }
+        };
+
+        window.onload = window.initDefaults;
+
+    </script>
+</body>
+</html>
