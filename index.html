@@ -128,14 +128,14 @@
             
             <div class="hidden md:block w-px h-6 bg-gray-200 mx-1"></div>
 
-            <!-- NUEVO BOTÓN: VAULT / LLAVES -->
+            <!-- BOTÓN: VAULT / LLAVES -->
             <button onclick="window.open('https://demon6048.github.io/VAULT6048/', '_blank')" class="px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl transition-all duration-200 flex items-center gap-2 font-semibold border border-purple-200 shadow-sm hover:shadow" title="Ir a mi Vault de Llaves">
                 <i data-lucide="key" class="w-4 h-4"></i> Vault
             </button>
             
             <div class="hidden md:block w-px h-6 bg-gray-200 mx-1"></div>
             
-            <!-- BOTÓN NUEVA PROFORMA (Ex Tachito de basura) -->
+            <!-- BOTÓN NUEVA PROFORMA -->
             <button onclick="window.clearForm()" class="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl transition-all duration-200 flex items-center gap-2 font-semibold border border-indigo-200 shadow-sm hover:shadow">
                 <i data-lucide="file-plus" class="w-4 h-4"></i> Nueva Proforma
             </button>
@@ -224,9 +224,10 @@
                         </div>
                     </div>
 
+                    <!-- AQUÍ ESTÁ EL TEXTAREA EXPANDIBLE PARA EL PRECIO FINAL -->
                     <div id="generalDescContainer" class="hidden mb-5 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl">
                         <label class="block text-xs font-bold text-brand-corp mb-1.5">Descripción General del Equipo</label>
-                        <input type="text" id="f_generalDesc" placeholder="Ej. PC Gamer Core i7" value="Computadora de Escritorio Alto Rendimiento" class="w-full border border-blue-200 rounded-lg px-3 py-2.5 bg-white font-medium shadow-sm focus:border-brand-tech focus:ring-2 focus:ring-brand-tech/20 transition-all" oninput="window.updatePreview()">
+                        <textarea id="f_generalDesc" rows="3" placeholder="Ej. PC Gamer Core i7&#10;- Placa B760&#10;- Memoria 16GB" class="w-full border border-blue-200 rounded-lg px-3 py-2.5 bg-white font-medium shadow-sm focus:border-brand-tech focus:ring-2 focus:ring-brand-tech/20 transition-all resize-y" oninput="window.updatePreview()">Computadora de Escritorio Alto Rendimiento</textarea>
                     </div>
 
                     <div class="overflow-x-auto">
@@ -292,7 +293,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-slate-500 mb-1.5">Número Yape / Plin</label>
-                            <input type="text" id="f_yape" value="917 309 964" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-bold focus:bg-white transition-colors text-slate-800" oninput="window.updatePreview()">
+                            <input type="text" id="f_yape" value="902 532 240" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-bold focus:bg-white transition-colors text-slate-800" oninput="window.updatePreview()">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-slate-500 mb-1.5">Link de QR Oficial (Opcional)</label>
@@ -352,9 +353,9 @@
                                         <p><strong class="text-gray-900">DIRECCIÓN:</strong> Jr. 2 de mayo. 477 Int 201</p>
                                         <p><strong class="text-gray-900">E-MAIL:</strong> ramirez0072@hotmail.com</p>
                                         <p class="flex items-center gap-2 whitespace-nowrap pt-1">
-                                            <i data-lucide="phone" class="w-4 h-4 text-brand-tech"></i> <span class="font-bold">917 309 964</span> 
+                                            <i data-lucide="phone" class="w-4 h-4 text-brand-tech"></i> <span class="font-bold">902 532 240</span> 
                                             <span class="text-gray-400">|</span> 
-                                            <i data-lucide="message-circle" class="w-4 h-4 text-green-500"></i> <span class="font-bold">917 309 964</span>
+                                            <i data-lucide="message-circle" class="w-4 h-4 text-green-500"></i> <span class="font-bold">902 532 240</span>
                                         </p>
                                     </div>
                                 </div>
@@ -416,20 +417,19 @@
                                     </h4>
                                     <div class="grid grid-cols-2 gap-x-2 gap-y-1 font-medium mb-3">
                                         <p class="col-span-2"><strong class="text-gray-900">Titular:</strong> José Leonaldo Vizcarra Ramirez</p>
-                                        <p><strong class="text-gray-900">BCP Soles:</strong> 36540188718011</p>
-                                        <p><strong class="text-gray-900">CCI (S/):</strong> </p>
+                                        <p><strong class="text-gray-900">BCP Soles:</strong> 36511177470020</p>
                                     </div>
                                     
                                     <div class="flex items-center gap-3 p-2.5 bg-white border border-slate-200 rounded-lg shadow-sm">
                                         <div class="w-12 h-12 bg-white p-0.5 rounded shadow-sm border border-slate-200 shrink-0">
-                                            <img id="p_yape_qr" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=902532240" alt="QR Yape" class="w-full h-full object-cover rounded-sm">
+                                            <img id="p_yape_qr" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=902532240" alt="QR Yape Plin" class="w-full h-full object-cover rounded-sm">
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center gap-1.5 mb-1">
                                                 <span class="bg-[#742284] text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase tracking-wider">YAPE</span>
                                                 <span class="bg-[#00E4CC] text-[#002242] text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase tracking-wider">PLIN</span>
                                             </div>
-                                            <p class="font-black text-lg text-slate-800 leading-none tracking-wide" id="p_yape">902532240</p>
+                                            <p class="font-black text-lg text-slate-800 leading-none tracking-wide" id="p_yape">902 532 240</p>
                                             <p class="text-[8px] text-slate-500 font-bold uppercase tracking-wider mt-1">Toma captura a este QR y súbelo a tu app</p>
                                         </div>
                                     </div>
@@ -579,7 +579,7 @@
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
                         <div class="absolute left-0 top-0 w-1 h-full bg-brand-tech"></div>
                         <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <i data-lucide="target" class="w-4 h-4 text-brand-tech"></i> Proyección de Proforma Actual
+                            <i data-lucide="target" class="w-4 h-4 text-brand-tech"></i> Balance Global Real (Solo Terminadas)
                         </h3>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div class="flex flex-col justify-center p-4 bg-orange-50/50 rounded-xl border border-orange-100">
@@ -828,7 +828,7 @@
                                                 <p><strong class="text-gray-900">KGB DISTRIBUIDORES</strong></p>
                                                 <p><strong class="text-gray-900">RUC:</strong> 20600094719</p>
                                                 <p>Jr. 2 de mayo. 477 Int 201</p>
-                                                <p class="font-bold text-brand-tech">917 309 964</p>
+                                                <p class="font-bold text-brand-tech">902 532 240</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1018,7 +1018,7 @@
                     }
                 }
 
-                // Cargar el Catálogo
+                // Cargar Catálogo de Productos
                 if (data.products && data.products.length > 0) {
                     const uniqueProducts = [...productCatalog]; 
                     const descSet = new Set(productCatalog.map(p => (p.desc || '').toUpperCase()));
@@ -1040,7 +1040,7 @@
                     localStorage.setItem('productCatalog_kgb', JSON.stringify(productCatalog));
                 }
 
-                // SIEMPRE ACTIVAR EL AUTOCOMPLETADO
+                // SIEMPRE ACTIVAR EL AUTOCOMPLETADO 
                 renderCatalogTable();
                 updateDatalist();
 
@@ -1214,13 +1214,13 @@
             syncText('f_obsGarantia', 'p_obsGarantia', 'No especificada');
             syncText('f_obsEntrega', 'p_obsEntrega', 'No especificada');
             syncText('f_obsValidez', 'p_obsValidez', 'No especificada');
-            syncText('f_yape', 'p_yape', '917 309 964');
+            syncText('f_yape', 'p_yape', '902 532 240');
 
             const yapeQrUrl = document.getElementById('f_yape_qr_url').value.trim();
             if (yapeQrUrl) {
                 document.getElementById('p_yape_qr').src = yapeQrUrl;
             } else {
-                const yapeNum = document.getElementById('f_yape').value.trim() || '917309964';
+                const yapeNum = document.getElementById('f_yape').value.trim() || '902532240';
                 document.getElementById('p_yape_qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${yapeNum.replace(/\s+/g, '')}`;
             }
             
@@ -1251,10 +1251,10 @@
                     const tr = document.createElement('tr');
                     tr.className = index % 2 === 0 ? 'bg-white/70 backdrop-blur-sm' : 'bg-white/40 backdrop-blur-sm';
                     tr.innerHTML = `
-                        <td class="py-1.5 px-3 text-center font-bold text-gray-800 border-l border-white/50">${item.qty}</td>
-                        <td class="py-1.5 px-3 font-semibold text-gray-900">${item.desc || '-'}</td>
-                        <td class="py-1.5 px-3 text-right text-gray-900 font-mono p-col-price">${displayPrice}</td>
-                        <td class="py-1.5 px-3 text-right font-bold text-brand-dark font-mono border-r border-white/50">${displayRowTotal}</td>
+                        <td class="py-1.5 px-3 text-center font-bold text-gray-800 border-l border-white/50 align-top">${item.qty}</td>
+                        <td class="py-1.5 px-3 font-semibold text-gray-900 whitespace-pre-wrap align-top leading-tight">${item.desc || '-'}</td>
+                        <td class="py-1.5 px-3 text-right text-gray-900 font-mono p-col-price align-top">${displayPrice}</td>
+                        <td class="py-1.5 px-3 text-right font-bold text-brand-dark font-mono border-r border-white/50 align-top">${displayRowTotal}</td>
                     `;
                     pBody.appendChild(tr);
                 });
@@ -1272,9 +1272,9 @@
                 const tr = document.createElement('tr');
                 tr.className = 'bg-white/70 backdrop-blur-sm border-b border-white/50';
                 tr.innerHTML = `
-                    <td class="py-3 px-3 text-center font-bold text-gray-800 border-l border-white/50">1</td>
-                    <td class="py-3 px-3 font-bold text-brand-tech text-sm">${generalDesc}</td>
-                    <td class="py-3 px-3 text-right font-black text-brand-dark text-base font-mono border-r border-white/50" colspan="2">${displayTotalResumen}</td>
+                    <td class="py-3 px-3 text-center font-bold text-gray-800 border-l border-white/50 align-top">1</td>
+                    <td class="py-3 px-3 font-bold text-brand-tech text-sm whitespace-pre-wrap align-top leading-snug">${generalDesc}</td>
+                    <td class="py-3 px-3 text-right font-black text-brand-dark text-base font-mono border-r border-white/50 align-top" colspan="2">${displayTotalResumen}</td>
                 `;
                 pBody.appendChild(tr);
             }
@@ -1289,12 +1289,11 @@
 
         window.clearForm = () => {
             if(confirm('¿Deseas crear una nueva proforma en blanco?')) {
-                // Limpiar campos
                 document.getElementById('f_clientName').value = '';
                 document.getElementById('f_clientDoc').value = '';
                 document.getElementById('f_clientPhone').value = '';
                 document.getElementById('f_clientAddress').value = '';
-                document.getElementById('f_yape').value = '917 309 964';
+                document.getElementById('f_yape').value = '902 532 240';
                 document.getElementById('f_yape_qr_url').value = '';
                 document.getElementById('f_obsNotas').value = '';
                 document.getElementById('f_generalDesc').value = '';
@@ -1302,19 +1301,16 @@
                 if(document.getElementById('f_manualCost')) document.getElementById('f_manualCost').value = '';
                 document.getElementById('f_status').value = 'Solo Proforma';
                 
-                // Poner la fecha de hoy
                 const now = new Date();
                 const yyyy = now.getFullYear();
                 const mm = String(now.getMonth() + 1).padStart(2, '0');
                 const dd = String(now.getDate()).padStart(2, '0');
                 document.getElementById('f_date').value = `${yyyy}-${mm}-${dd}`;
                 
-                // Reiniciar estado
                 window.currentEditId = null; 
                 items = [{ id: 1, qty: 1, desc: '', cost: 0, price: 0 }];
                 window.proformaImages = []; 
 
-                // Calcular el siguiente consecutivo al INSTANTE
                 let maxNum = 0;
                 if (proformasList && proformasList.length > 0) {
                     proformasList.forEach(p => {
@@ -1328,7 +1324,6 @@
                 const nextNum = maxNum > 0 ? maxNum + 1 : 1;
                 document.getElementById('f_profNumber').value = String(nextNum).padStart(4, '0');
                 
-                // Regresar al modo de vista Detallado
                 window.setMode('detalle');
                 window.renderItems();
             }
@@ -1463,7 +1458,7 @@
                     generalDesc: document.getElementById('f_generalDesc').value || '',
                     manualCost: document.getElementById('f_manualCost').value || '',
                     manualTotal: document.getElementById('f_manualTotal').value || '',
-                    yape: document.getElementById('f_yape').value || '917 309 964',
+                    yape: document.getElementById('f_yape').value || '902 532 240',
                     yapeQrUrl: document.getElementById('f_yape_qr_url').value || '',
                     obsGarantia: document.getElementById('f_obsGarantia').value || '',
                     obsEntrega: document.getElementById('f_obsEntrega').value || '',
@@ -1658,19 +1653,16 @@
             let anoIngreso = 0, anoGanancia = 0;
 
             proformasList.forEach(p => {
-                // Sumar ABSOLUTAMENTE TODO solo si está en estado 'Terminado'
                 if (p.status === 'Terminado') {
                     const pCost = p.cost || 0;
                     const pTotal = p.total || 0;
                     const pProfit = p.profit || 0;
                     const pDate = p.date; 
 
-                    // Sumas Globales (El cuadro de arriba)
                     globalInv += pCost;
                     globalVen += pTotal;
                     globalGan += pProfit;
 
-                    // Sumas por Fechas (Los cuadros de abajo)
                     if (pDate === todayStr) {
                         hoyIngreso += pTotal;
                         hoyGanancia += pProfit;
@@ -1686,12 +1678,10 @@
                 }
             });
 
-            // Actualizar cuadros superiores (Globales)
             document.getElementById('m_inv').innerText = `S/ ${globalInv.toFixed(2)}`;
             document.getElementById('m_ven').innerText = `S/ ${globalVen.toFixed(2)}`;
             document.getElementById('m_gan').innerText = `S/ ${globalGan.toFixed(2)}`;
 
-            // Actualizar cuadros inferiores (Reales por fecha)
             document.getElementById('m_hoy_ingreso').innerText = `S/ ${hoyIngreso.toFixed(2)}`;
             document.getElementById('m_hoy_ganancia').innerText = `S/ ${hoyGanancia.toFixed(2)}`;
             document.getElementById('m_mes_ingreso').innerText = `S/ ${mesIngreso.toFixed(2)}`;
@@ -1776,7 +1766,7 @@
             document.getElementById('f_manualCost').value = prof.manualCost || '';
             document.getElementById('f_manualTotal').value = prof.manualTotal || '';
             
-            document.getElementById('f_yape').value = prof.yape || '917 309 964';
+            document.getElementById('f_yape').value = prof.yape || '902 532 240';
             document.getElementById('f_yape_qr_url').value = prof.yapeQrUrl || '';
             document.getElementById('f_obsGarantia').value = prof.obsGarantia || '12 meses contra defectos de fábrica';
             document.getElementById('f_obsEntrega').value = prof.obsEntrega || '24 a 48 horas tras confirmación';
@@ -1888,15 +1878,63 @@
                     </td>
                     <td class="py-3 px-4 text-right font-mono font-black text-rose-600 bg-rose-50/50" id="c_amt_${prof.id}">S/ ${mitad.toFixed(2)}</td>
                     <td class="py-3 px-4 text-center">
-                        <button onclick="window.generateContractPDF('${prof.id}', this)" class="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg border border-rose-200 font-bold transition-all shadow-sm hover:shadow flex items-center gap-1.5 mx-auto">
-                            <i data-lucide="printer" class="w-3.5 h-3.5"></i> Imprimir
-                        </button>
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="window.generateContractPDF('${prof.id}', this)" class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg border border-rose-200 font-bold transition-all shadow-sm hover:shadow flex items-center gap-1" title="Descargar PDF">
+                                <i data-lucide="printer" class="w-4 h-4"></i> PDF
+                            </button>
+                            <button onclick="window.sendContractWhatsApp('${prof.id}', this)" class="px-2.5 py-1.5 bg-green-50 hover:bg-green-100 text-green-600 rounded-lg border border-green-200 font-bold transition-all shadow-sm hover:shadow flex items-center gap-1" title="Enviar por WhatsApp">
+                                <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+                                WSP
+                            </button>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
             lucide.createIcons();
         }
+
+        window.sendContractWhatsApp = (id, btn) => {
+            const prof = proformasList.find(p => p.id === id);
+            if (!prof) return alert("Error: Proforma no encontrada.");
+
+            const phoneRaw = prof.clientPhone ? prof.clientPhone.trim() : '';
+            if (!phoneRaw) {
+                alert("Por favor, asegúrate de que el cliente tenga un número de teléfono registrado en la proforma.");
+                return;
+            }
+            
+            let phone = phoneRaw.replace(/\D/g, '');
+            if (phone.length === 9 && phone.startsWith('9')) {
+                phone = '51' + phone;
+            }
+
+            let pct = parseFloat(document.getElementById(`c_pct_${id}`).value);
+            if (isNaN(pct) || pct < 0) pct = 0;
+            if (pct > 100) pct = 100;
+
+            const total = prof.total;
+            const adelanto = total * (pct / 100);
+            const saldo = total - adelanto;
+
+            let msgAdelanto = "";
+            if (pct === 100) {
+                msgAdelanto = `Según lo acordado, el pago es del *100%*, que equivale a *S/ ${adelanto.toFixed(2)}*.`;
+            } else if (pct === 0) {
+                msgAdelanto = `El pago se realizará contra entrega por un total de *S/ ${saldo.toFixed(2)}*.`;
+            } else {
+                msgAdelanto = `Según lo acordado, el pago de adelanto es del *${pct}%*, que equivale a *S/ ${adelanto.toFixed(2)}*.`;
+            }
+
+            const message = `Hola *${prof.clientName || 'Estimado Cliente'}*, te saludamos del equipo de *KGB Distribuidores*. 👋\n\nTe estamos enviando el Contrato de Servicios correspondiente a tu cotización (*Ref: ${prof.profNumber}*).\n\n${msgAdelanto}\n\nAdjunto encontrarás el documento PDF con todos los detalles y nuestras cuentas de pago. Por favor, envíanos el comprobante para proceder. Quedamos atentos a tu confirmación. 📄🤝`;
+
+            const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+            window.open(waUrl, '_blank');
+
+            // Descargar automáticamente el PDF del contrato también
+            const printBtn = btn.previousElementSibling;
+            if (printBtn) window.generateContractPDF(id, printBtn);
+        };
 
         window.generateContractPDF = (id, btn) => {
             const prof = proformasList.find(p => p.id === id);
