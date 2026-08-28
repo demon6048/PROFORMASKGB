@@ -86,6 +86,9 @@
 
     <!-- DATALIST PARA AUTOCOMPLETADO -->
     <datalist id="inventoryList"></datalist>
+    <datalist id="clientNamesList"></datalist>
+    <datalist id="clientDocsList"></datalist>
+    <datalist id="clientPhonesList"></datalist>
 
     <header class="bg-white/80 backdrop-blur-md border-b border-gray-200 h-16 flex items-center px-6 justify-between shrink-0 z-20 shadow-sm relative">
         <div class="flex items-center gap-3">
@@ -194,15 +197,15 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div class="md:col-span-2 lg:col-span-3">
                             <label class="block text-xs font-medium text-slate-500 mb-1.5">Nombre / Razón Social</label>
-                            <input type="text" id="f_clientName" placeholder="Ej. Juan Pérez" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 font-medium focus:bg-white transition-all" oninput="window.updatePreview()">
+                            <input type="text" id="f_clientName" list="clientNamesList" placeholder="Ej. Juan Pérez" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 font-medium focus:bg-white transition-all" oninput="window.handleClientAutoFill('name', this.value); window.updatePreview()">
                         </div>
                         <div class="lg:col-span-1">
                             <label class="block text-xs font-medium text-slate-500 mb-1.5">DNI / RUC</label>
-                            <input type="text" id="f_clientDoc" placeholder="Ej. 12345678" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 font-medium focus:bg-white transition-all" oninput="window.updatePreview()">
+                            <input type="text" id="f_clientDoc" list="clientDocsList" placeholder="Ej. 12345678" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 font-medium focus:bg-white transition-all" oninput="window.handleClientAutoFill('doc', this.value); window.updatePreview()">
                         </div>
                         <div class="lg:col-span-1">
                             <label class="block text-xs font-medium text-slate-500 mb-1.5">Teléfono / Celular</label>
-                            <input type="text" id="f_clientPhone" placeholder="Ej. 987 654 321" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 font-medium focus:bg-white transition-all" oninput="window.updatePreview()">
+                            <input type="text" id="f_clientPhone" list="clientPhonesList" placeholder="Ej. 987 654 321" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 font-medium focus:bg-white transition-all" oninput="window.handleClientAutoFill('phone', this.value); window.updatePreview()">
                         </div>
                         <div class="lg:col-span-1">
                             <label class="block text-xs font-medium text-slate-500 mb-1.5">Dirección (Opcional)</label>
@@ -861,6 +864,7 @@
                     if (document.getElementById('contractModal') && !document.getElementById('contractModal').classList.contains('hidden')) {
                         renderContractTable(); 
                     }
+                    window.updateClientDatalists(); // Actualiza la BD local de clientes
                 }
 
                 // Cargar Catálogo de Productos
@@ -894,6 +898,66 @@
             } catch (error) {
                 console.error("Error sincronizando:", error);
                 window.setCloudStatus('error'); 
+            }
+        };
+
+        // AUTOCOMPLETADO INTELIGENTE DE CLIENTES
+        window.uniqueClients = [];
+        window.updateClientDatalists = () => {
+            const clientMap = new Map();
+            proformasList.forEach(p => {
+                const doc = (p.clientDoc || '').trim();
+                const name = (p.clientName || '').trim();
+                const phone = (p.clientPhone || '').trim();
+                const address = (p.clientAddress || '').trim();
+                
+                if(name !== 'Sin Nombre' && name !== '') {
+                    const key = doc || name; 
+                    if(!clientMap.has(key)) {
+                        clientMap.set(key, { name, doc, phone, address });
+                    } else {
+                        // Si ya existe pero el nuevo registro tiene más datos, lo actualizamos
+                        const existing = clientMap.get(key);
+                        if(!existing.phone && phone) existing.phone = phone;
+                        if(!existing.address && address) existing.address = address;
+                        if(!existing.doc && doc) existing.doc = doc;
+                    }
+                }
+            });
+            
+            window.uniqueClients = Array.from(clientMap.values());
+            
+            const namesList = document.getElementById('clientNamesList');
+            const docsList = document.getElementById('clientDocsList');
+            const phonesList = document.getElementById('clientPhonesList');
+            
+            if(namesList) namesList.innerHTML = window.uniqueClients.filter(c => c.name).map(c => `<option value="${c.name}">`).join('');
+            if(docsList) docsList.innerHTML = window.uniqueClients.filter(c => c.doc).map(c => `<option value="${c.doc}">`).join('');
+            if(phonesList) phonesList.innerHTML = window.uniqueClients.filter(c => c.phone).map(c => `<option value="${c.phone}">`).join('');
+        };
+
+        window.handleClientAutoFill = (field, value) => {
+            if (!value || value.trim() === '') return;
+            const upperVal = value.trim().toUpperCase();
+            
+            // Buscar coincidencia exacta
+            const client = window.uniqueClients.find(c => 
+                (field === 'name' && (c.name || '').toUpperCase() === upperVal) ||
+                (field === 'doc' && (c.doc || '').toUpperCase() === upperVal) ||
+                (field === 'phone' && (c.phone || '').toUpperCase() === upperVal)
+            );
+
+            if (client) {
+                const nameInput = document.getElementById('f_clientName');
+                const docInput = document.getElementById('f_clientDoc');
+                const phoneInput = document.getElementById('f_clientPhone');
+                const addressInput = document.getElementById('f_clientAddress');
+
+                // Rellenar automáticamente los campos que estén vacíos o actualizar si es un nuevo registro encontrado
+                if (field !== 'name' && client.name) nameInput.value = client.name;
+                if (field !== 'doc' && client.doc) docInput.value = client.doc;
+                if (field !== 'phone' && client.phone) phoneInput.value = client.phone;
+                if (field !== 'address' && client.address) addressInput.value = client.address;
             }
         };
 
