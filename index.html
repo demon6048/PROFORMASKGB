@@ -3,23 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador de Proformas Tech</title>
+    <title>Generador de Proformas Tech - KGB</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Tipografías Tecnológicas: Exo 2 (Cuerpo Tech), Orbitron (Insignias/Títulos) y JetBrains Mono (Números/Precios) -->
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&family=Orbitron:wght@700;800;900&display=swap" rel="stylesheet">
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'], },
+                    fontFamily: { 
+                        sans: ['Inter', 'sans-serif'],
+                        tech: ['"Exo 2"', 'sans-serif'],
+                        display: ['Orbitron', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace']
+                    },
                     colors: {
                         brand: {
                             dark: '#020617',
@@ -38,60 +42,73 @@
     <style>
         body { background-color: #f8fafc; color: #020617; }
         
-        @page { size: A4 portrait; margin: 0; }
-
-        .a4-page {
-            width: 794px; min-width: 794px; max-width: 794px;
-            height: 1123px; min-height: 1123px; max-height: 1123px;
-            background: white; 
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
-            margin: 0; position: relative; z-index: 0;
-            flex-shrink: 0; border-radius: 2px;
-            box-sizing: border-box; overflow: hidden;
-            display: flex; flex-direction: column;
+        .a4-canvas-card {
+            width: 794px;
+            height: 1123px;
+            background: white;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            flex-shrink: 0;
         }
 
-        .page-content {
-            position: relative; z-index: 10;
-            width: 100%; display: flex; flex-direction: column;
-            box-sizing: border-box;
+        .a4-canvas-card canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
         }
-
-        .margin-guide-box {
-            position: absolute; border: 1px dashed rgba(239, 68, 68, 0.45);
-            pointer-events: none; z-index: 20;
-        }
-        
-        .margin-guide-label {
-            position: absolute; top: -16px; right: 4px;
-            font-size: 9px; font-weight: 800; color: rgba(239, 68, 68, 0.7);
-            text-transform: uppercase; letter-spacing: 0.05em;
-        }
-
-        .exporting-pdf .margin-guide-box, .exporting-pdf .page-badge { display: none !important; }
 
         .hide-scrollbar::-webkit-scrollbar { width: 6px; }
         .hide-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .hide-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
 
-        input:focus, textarea:focus, select:focus { outline: none; border-color: #06b6d4; box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15); transition: all 0.2s ease; }
+        input:focus, textarea:focus, select:focus { 
+            outline: none; 
+            border-color: #06b6d4; 
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15); 
+            transition: all 0.2s ease; 
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden text-sm">
+
+    <!-- Precarga invisible para asegurar que las fuentes tecnológicas estén listas en el Canvas -->
+    <div style="font-family: 'Exo 2'; font-weight: 800; position: absolute; left: -9999px; opacity: 0;">TechFontPreload</div>
+    <div style="font-family: 'Orbitron'; font-weight: 900; position: absolute; left: -9999px; opacity: 0;">OrbitronPreload</div>
+    <div style="font-family: 'JetBrains Mono'; font-weight: 800; position: absolute; left: -9999px; opacity: 0;">MonoPreload</div>
 
     <datalist id="inventoryList"></datalist>
     <datalist id="nameList"></datalist>
     <datalist id="docList"></datalist>
     <datalist id="phoneList"></datalist>
 
-    <header class="bg-white/80 backdrop-blur-md border-b border-gray-200 h-16 flex items-center px-4 lg:px-6 justify-between shrink-0 z-40 shadow-sm relative">
+    <!-- Notificación Toast Flotante -->
+    <div id="toastNotification" class="hidden fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-cyan-500/40 flex items-center gap-3 transition-all duration-300">
+        <i data-lucide="info" class="w-5 h-5 text-cyan-400"></i>
+        <span id="toastMessage" class="text-xs font-bold">Notificación</span>
+    </div>
+
+    <!-- Modal de Confirmación Personalizado -->
+    <div id="confirmDialogModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200">
+            <h3 id="confirmDialogTitle" class="text-base font-black text-slate-900 mb-2">Confirmar acción</h3>
+            <p id="confirmDialogText" class="text-xs text-slate-600 mb-5 font-medium"></p>
+            <div class="flex justify-end gap-2.5">
+                <button id="confirmCancelBtn" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">Cancelar</button>
+                <button id="confirmOkBtn" class="px-4 py-2 rounded-xl bg-brand-tech hover:bg-blue-600 text-white font-bold text-xs shadow-md">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <header class="bg-white/90 backdrop-blur-md border-b border-gray-200 h-16 flex items-center px-4 lg:px-6 justify-between shrink-0 z-40 shadow-sm relative">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-corp to-brand-tech flex items-center justify-center text-white shadow-lg shadow-brand-tech/30">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-corp via-brand-tech to-brand-accent flex items-center justify-center text-white shadow-lg shadow-brand-tech/30">
                 <i data-lucide="cpu" class="w-6 h-6"></i>
             </div>
             <div class="flex flex-col">
-                <h1 class="font-black text-lg lg:text-xl tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-brand-corp via-brand-tech to-brand-accent leading-none">ProformaTech</h1>
-                <div id="cloudSyncIndicator" class="flex items-center gap-1.5 mt-0.5 opacity-90 transition-all duration-300">
+                <h1 class="font-display font-black text-base lg:text-lg tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-brand-corp via-brand-tech to-brand-accent leading-none">PROFORMATECH</h1>
+                <div id="cloudSyncIndicator" class="flex items-center gap-1.5 mt-1 opacity-90 transition-all duration-300">
                     <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
                     <span class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Nube Conectada</span>
                 </div>
@@ -99,6 +116,11 @@
         </div>
         
         <div class="flex items-center gap-2 lg:gap-2.5 flex-wrap justify-end">
+            <!-- Botón de Copia de Seguridad -->
+            <button onclick="window.backupDatabase()" class="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-xl transition-all flex items-center gap-1.5 font-bold border border-amber-200 shadow-sm text-xs" title="Descargar Copia de Seguridad de tu Base de Datos">
+                <i data-lucide="shield-check" class="w-4 h-4 text-amber-600"></i> <span class="hidden xl:inline">Backup BD</span>
+            </button>
+
             <!-- MENÚ DESPLEGABLE -->
             <div class="relative">
                 <button onclick="window.toggleMenu()" class="px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl transition-all duration-200 flex items-center gap-2 font-bold border border-slate-200 shadow-sm">
@@ -150,19 +172,20 @@
 
     <main class="flex-1 flex overflow-hidden relative bg-slate-50 flex-col lg:flex-row">
         
-        <section class="w-full lg:w-[50%] xl:w-[55%] h-[50vh] lg:h-full overflow-y-auto hide-scrollbar p-4 lg:p-6 border-b lg:border-b-0 lg:border-r border-gray-200 z-10 bg-white shadow-[10px_0_15px_-3px_rgba(0,0,0,0.02)]">
-            <div class="max-w-4xl mx-auto space-y-6 pb-20">
+        <!-- PANEL IZQUIERDO DE CONTROLES -->
+        <section class="w-full lg:w-[50%] xl:w-[54%] h-[50vh] lg:h-full overflow-y-auto hide-scrollbar p-4 lg:p-6 border-b lg:border-b-0 lg:border-r border-gray-200 z-10 bg-white">
+            <div class="max-w-4xl mx-auto space-y-5 pb-20">
 
-                <!-- PANEL DE MÁRGENES -->
-                <div class="bg-gradient-to-br from-slate-900 to-brand-corp p-5 rounded-2xl shadow-md text-white relative overflow-hidden">
-                    <div class="flex flex-wrap justify-between items-center gap-2 mb-3 border-b border-white/15 pb-3">
+                <!-- PANEL DE MÁRGENES Y ESTILO VISUAL -->
+                <div class="bg-gradient-to-br from-slate-900 via-brand-corp to-slate-900 p-4 rounded-2xl shadow-md text-white relative overflow-hidden">
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-3 border-b border-white/15 pb-2.5">
                         <h2 class="text-xs font-black text-cyan-300 uppercase tracking-widest flex items-center gap-2">
-                            <i data-lucide="sliders" class="w-4 h-4"></i> Ajustes de Página (Márgenes Word)
+                            <i data-lucide="sliders" class="w-4 h-4"></i> Ajustes de Página A4 & Transparencia Tech
                         </h2>
                         <div class="flex items-center gap-3">
                             <label class="flex items-center gap-1.5 text-[11px] font-semibold text-slate-200 cursor-pointer select-none">
-                                <input type="checkbox" id="cfg_showGuides" checked onchange="window.updatePreview()" class="rounded text-cyan-400 focus:ring-0 cursor-pointer">
-                                Ver líneas
+                                <input type="checkbox" id="cfg_showGuides" onchange="window.updatePreview()" class="rounded text-cyan-400 focus:ring-0 cursor-pointer">
+                                Ver guías de margen
                             </label>
                             <button onclick="window.resetLayoutDefaults()" class="text-[10px] bg-white/10 hover:bg-white/20 text-white px-2.5 py-1 rounded-md font-bold transition-colors">
                                 Restaurar
@@ -170,41 +193,30 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    <div class="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
                         <div>
-                            <label class="block text-[10px] font-bold text-cyan-200 uppercase mb-1">Margen Arriba</label>
-                            <div class="relative">
-                                <input type="number" id="cfg_mTop" value="15" min="5" max="80" class="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-white font-mono font-bold text-xs" oninput="window.updatePreview()">
-                                <span class="absolute right-2 top-1.5 text-[10px] text-white/50">mm</span>
-                            </div>
+                            <label class="block text-[10px] font-bold text-cyan-200 uppercase mb-1">Arriba (mm)</label>
+                            <input type="number" id="cfg_mTop" value="14" min="5" max="50" class="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-white font-mono font-bold text-xs" oninput="window.updatePreview()">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-rose-300 uppercase mb-1">Margen Abajo</label>
-                            <div class="relative">
-                                <input type="number" id="cfg_mBottom" value="20" min="5" max="90" class="w-full bg-white/10 border border-rose-400/40 rounded-lg px-2.5 py-1.5 text-white font-mono font-bold text-xs" oninput="window.updatePreview()">
-                                <span class="absolute right-2 top-1.5 text-[10px] text-white/50">mm</span>
-                            </div>
+                            <label class="block text-[10px] font-bold text-rose-300 uppercase mb-1">Abajo (mm)</label>
+                            <input type="number" id="cfg_mBottom" value="16" min="5" max="50" class="w-full bg-white/10 border border-rose-400/40 rounded-lg px-2.5 py-1.5 text-white font-mono font-bold text-xs" oninput="window.updatePreview()">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-cyan-200 uppercase mb-1">Margen Izq.</label>
-                            <div class="relative">
-                                <input type="number" id="cfg_mLeft" value="15" min="5" max="60" class="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-white font-mono font-bold text-xs" oninput="window.updatePreview()">
-                                <span class="absolute right-2 top-1.5 text-[10px] text-white/50">mm</span>
-                            </div>
+                            <label class="block text-[10px] font-bold text-cyan-200 uppercase mb-1">Izq. (mm)</label>
+                            <input type="number" id="cfg_mLeft" value="14" min="5" max="40" class="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-white font-mono font-bold text-xs" oninput="window.updatePreview()">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-cyan-200 uppercase mb-1">Margen Der.</label>
-                            <div class="relative">
-                                <input type="number" id="cfg_mRight" value="15" min="5" max="60" class="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-white font-mono font-bold text-xs" oninput="window.updatePreview()">
-                                <span class="absolute right-2 top-1.5 text-[10px] text-white/50">mm</span>
-                            </div>
+                            <label class="block text-[10px] font-bold text-cyan-200 uppercase mb-1">Der. (mm)</label>
+                            <input type="number" id="cfg_mRight" value="14" min="5" max="40" class="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-white font-mono font-bold text-xs" oninput="window.updatePreview()">
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-emerald-300 uppercase mb-1">Opacidad Fondo</label>
-                            <div class="relative">
-                                <input type="number" id="cfg_bgOpacity" value="100" min="5" max="100" step="5" class="w-full bg-white/10 border border-emerald-400/40 rounded-lg px-2.5 py-1.5 text-white font-mono font-bold text-xs" oninput="window.reloadBgOpacity()">
-                                <span class="absolute right-2 top-1.5 text-[10px] text-white/50">%</span>
-                            </div>
+                            <label class="block text-[10px] font-bold text-emerald-300 uppercase mb-1">Fondo (%)</label>
+                            <input type="number" id="cfg_bgOpacity" value="100" min="10" max="100" step="5" class="w-full bg-white/10 border border-emerald-400/40 rounded-lg px-2.5 py-1.5 text-white font-mono font-bold text-xs" oninput="window.updatePreview()">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-purple-300 uppercase mb-1">Cristal (%)</label>
+                            <input type="number" id="cfg_glassOpacity" value="72" min="25" max="98" step="5" class="w-full bg-white/10 border border-purple-400/40 rounded-lg px-2.5 py-1.5 text-white font-mono font-bold text-xs" oninput="window.updatePreview()" title="Nivel de transparencia de las filas y paneles">
                         </div>
                     </div>
                 </div>
@@ -241,15 +253,13 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div class="md:col-span-2 lg:col-span-3">
                             <label class="block text-xs font-medium text-slate-500 mb-1.5">Nombre / Razón Social</label>
-                            <input type="text" id="f_clientName" list="nameList" placeholder="Ej. Juan Pérez" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 font-medium" oninput="window.updatePreview(); window.handleClientAutoFill('name')">
+                            <input type="text" id="f_clientName" list="nameList" placeholder="Ej. JUAN PÉREZ" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 font-medium" oninput="window.updatePreview(); window.handleClientAutoFill('name')">
                         </div>
                         <div class="lg:col-span-1">
-                            <label class="block text-xs font-medium text-slate-500 mb-1.5 flex justify-between items-center">
-                                <span>DNI / RUC</span>
-                            </label>
+                            <label class="block text-xs font-medium text-slate-500 mb-1.5">DNI / RUC</label>
                             <div class="relative">
                                 <input type="text" id="f_clientDoc" list="docList" placeholder="Ej. 12345678" class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-3 pr-10 py-2.5 font-medium" oninput="window.updatePreview(); window.handleClientAutoFill('doc')" onkeydown="if(event.key === 'Enter') window.searchDocument()">
-                                <button id="btnSearchDoc" onclick="window.searchDocument()" class="absolute right-1 top-1 bottom-1 px-2.5 bg-brand-tech text-white rounded-md hover:bg-blue-600 transition-colors flex items-center justify-center" title="Buscar en Base de Datos Peru">
+                                <button id="btnSearchDoc" onclick="window.searchDocument()" class="absolute right-1 top-1 bottom-1 px-2.5 bg-brand-tech text-white rounded-md hover:bg-blue-600 transition-colors flex items-center justify-center" title="Buscar DNI/RUC">
                                     <i data-lucide="search" class="w-4 h-4"></i>
                                 </button>
                             </div>
@@ -269,7 +279,7 @@
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                     <div class="flex justify-between items-center mb-5">
                         <h2 class="text-xs font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                            <div class="p-1.5 bg-slate-100 rounded-md text-brand-accent"><i data-lucide="cpu" class="w-4 h-4"></i></div> Componentes
+                            <div class="p-1.5 bg-slate-100 rounded-md text-brand-accent"><i data-lucide="cpu" class="w-4 h-4"></i></div> Componentes y Servicios
                         </h2>
                         <div class="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
                             <button id="btnModeDetalle" onclick="window.setMode('detalle')" class="px-3 py-1.5 text-xs font-bold rounded-md shadow-sm bg-white text-brand-tech">Detallado</button>
@@ -278,8 +288,8 @@
                     </div>
 
                     <div id="generalDescContainer" class="hidden mb-5 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl">
-                        <label class="block text-xs font-bold text-brand-corp mb-1.5">Descripción General del Equipo</label>
-                        <textarea id="f_generalDesc" rows="3" class="w-full border border-blue-200 rounded-lg px-3 py-2.5 bg-white font-medium shadow-sm resize-y" oninput="window.updatePreview()">Computadora de Escritorio Alto Rendimiento</textarea>
+                        <label class="block text-xs font-bold text-brand-corp mb-1.5">Descripción General del Equipo / Proyecto</label>
+                        <textarea id="f_generalDesc" rows="3" class="w-full border border-blue-200 rounded-lg px-3 py-2.5 bg-white font-medium shadow-sm resize-y" oninput="window.updatePreview()">COMPUTADORA DE ESCRITORIO ALTO RENDIMIENTO</textarea>
                     </div>
 
                     <div class="overflow-x-auto">
@@ -303,26 +313,31 @@
                     </button>
                 </div>
 
-                <!-- Precios Combo -->
+                <!-- Precios Combo + IGV Exonerado -->
                 <div class="bg-gradient-to-br from-slate-800 to-brand-corp p-6 rounded-2xl shadow-md text-white relative overflow-hidden">
-                    <h2 class="text-xs font-black text-blue-200 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="calculator" class="w-4 h-4"></i> Precios de Paquete / Combo</h2>
+                    <h2 class="text-xs font-black text-blue-200 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <i data-lucide="calculator" class="w-4 h-4"></i> Impuestos & Precios de Paquete
+                    </h2>
                     
-                    <!-- BOTÓN IGV AMAZONÍA (EXONERADO POR DEFECTO) -->
-                    <div class="flex items-center justify-between mb-4 bg-white/10 p-2.5 rounded-lg border border-white/20">
-                        <label class="text-[11px] font-bold text-white flex items-center gap-2 cursor-pointer select-none">
+                    <!-- Interruptor IGV Desactivado por Defecto (Amazonía Exonerado 0%) -->
+                    <div class="flex items-center justify-between mb-4 bg-white/10 p-3 rounded-xl border border-white/20">
+                        <label class="text-xs font-bold text-white flex items-center gap-2.5 cursor-pointer select-none">
                             <input type="checkbox" id="cfg_igv" class="rounded text-brand-tech focus:ring-0 w-4 h-4 cursor-pointer" onchange="window.updatePreview()">
-                            <span>Cobrar I.G.V. (18%) <span class="text-emerald-300 text-[10px] font-normal ml-1">→ Desmarcado = Exonerado (0%)</span></span>
+                            <span>Activar cobro de I.G.V. (18%)</span>
                         </label>
+                        <span id="igvStatusPill" class="text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                            Exonerado (0%)
+                        </span>
                     </div>
 
                     <div class="flex gap-4">
                         <div class="relative flex-1">
-                            <label class="block text-[10px] font-bold text-orange-300 mb-1.5 uppercase tracking-wider">Costo Total (Gasto)</label>
+                            <label class="block text-[10px] font-bold text-orange-300 mb-1.5 uppercase tracking-wider">Costo Total Manual</label>
                             <span class="absolute left-3 top-[30px] text-orange-200/50 font-bold">S/</span>
                             <input type="number" min="0" step="0.01" id="f_manualCost" class="w-full bg-white/10 border border-white/20 rounded-xl pl-8 pr-3 py-2.5 text-sm font-bold text-white focus:border-orange-400" oninput="window.updatePreview()">
                         </div>
                         <div class="relative flex-1">
-                            <label class="block text-[10px] font-bold text-emerald-300 mb-1.5 uppercase tracking-wider">Precio Final (Venta)</label>
+                            <label class="block text-[10px] font-bold text-emerald-300 mb-1.5 uppercase tracking-wider">Precio Final Manual</label>
                             <span class="absolute left-3 top-[30px] text-emerald-200/50 font-bold">S/</span>
                             <input type="number" min="0" step="0.01" id="f_manualTotal" class="w-full bg-white/10 border border-white/20 rounded-xl pl-8 pr-3 py-2.5 text-sm font-bold text-white focus:border-emerald-400" oninput="window.updatePreview()">
                         </div>
@@ -337,15 +352,15 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-medium text-slate-500 mb-1.5">Garantía</label>
-                            <input type="text" id="f_obsGarantia" value="12 meses contra defectos de fábrica" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium" oninput="window.updatePreview()">
+                            <input type="text" id="f_obsGarantia" value="12 MESES CONTRA DEFECTOS DE FÁBRICA" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium" oninput="window.updatePreview()">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-slate-500 mb-1.5">Tiempo de Entrega</label>
-                            <input type="text" id="f_obsEntrega" value="24 a 48 horas tras confirmación" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium" oninput="window.updatePreview()">
+                            <input type="text" id="f_obsEntrega" value="24 A 48 HORAS TRAS CONFIRMACIÓN" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium" oninput="window.updatePreview()">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-slate-500 mb-1.5">Validez de Proforma</label>
-                            <input type="text" id="f_obsValidez" value="3 días útiles" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium" oninput="window.updatePreview()">
+                            <input type="text" id="f_obsValidez" value="3 DÍAS ÚTILES" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium" oninput="window.updatePreview()">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-slate-500 mb-1.5">Número Yape</label>
@@ -355,13 +370,14 @@
                             <label class="block text-xs font-medium text-slate-500 mb-1.5">Otras Notas</label>
                             <input type="text" id="f_obsNotas" placeholder="Opcional..." class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium" oninput="window.updatePreview()">
                         </div>
+                        <input type="hidden" id="f_yape_qr_url" value="">
                     </div>
                 </div>
 
                 <!-- Imágenes -->
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
                     <h2 class="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <div class="p-1.5 bg-slate-100 rounded-md text-emerald-500"><i data-lucide="image" class="w-4 h-4"></i></div> Evidencias / Imágenes
+                        <div class="p-1.5 bg-slate-100 rounded-md text-emerald-500"><i data-lucide="image" class="w-4 h-4"></i></div> Evidencias / Imágenes Anexas
                     </h2>
                     <div class="border-2 border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center text-slate-500 hover:bg-slate-50 cursor-pointer relative">
                         <i data-lucide="upload-cloud" class="w-8 h-8 mb-2"></i>
@@ -373,18 +389,18 @@
             </div>
         </section>
 
-        <!-- ZONA DE PREVISUALIZACIÓN -->
-        <section id="preview-wrapper-section" class="w-full lg:w-[50%] xl:w-[45%] h-[50vh] lg:h-full overflow-y-auto bg-slate-700 p-4 lg:p-8 flex flex-col items-center border-l border-slate-300 shadow-inner relative">
+        <!-- ZONA DE PREVISUALIZACIÓN (LIENZO DIRECTO A4 300 DPI) -->
+        <section id="preview-wrapper-section" class="w-full lg:w-[50%] xl:w-[46%] h-[50vh] lg:h-full overflow-y-auto bg-slate-800 p-4 lg:p-8 flex flex-col items-center border-l border-slate-700 shadow-inner relative">
             
-            <div class="sticky top-0 z-30 mb-4 bg-slate-900/90 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg border border-white/10 flex items-center gap-3">
-                <span class="flex items-center gap-1.5 text-cyan-400"><i data-lucide="layers" class="w-3.5 h-3.5"></i> Vista Previa A4</span>
+            <div class="sticky top-0 z-30 mb-4 bg-slate-900/95 backdrop-blur-md text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg border border-cyan-500/30 flex items-center gap-3">
+                <span class="flex items-center gap-1.5 text-cyan-400"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Renderizado Glass-Tech 300 DPI</span>
                 <span class="text-white/30">|</span>
-                <span id="pageCountBadge" class="text-amber-300">Calculando hojas...</span>
+                <span id="pageCountBadge" class="text-emerald-300">1 Hoja A4</span>
             </div>
 
             <div id="preview-scaler" class="origin-top flex flex-col items-center transition-transform duration-150 z-10" style="width: 794px;">
                 <div id="proforma-pdf-wrapper" class="flex flex-col gap-8 items-center w-full pb-12">
-                    <!-- Hojas A4 inyectadas dinámicamente -->
+                    <!-- Lienzos A4 inyectados aquí -->
                 </div>
             </div>
         </section>
@@ -394,7 +410,7 @@
             <div class="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200">
                 <div class="px-6 py-4 border-b border-rose-100 flex justify-between items-center bg-rose-50">
                     <h2 class="text-xl font-black text-brand-dark flex items-center gap-2 uppercase tracking-wide">
-                        <div class="p-1.5 bg-white rounded shadow-sm text-rose-500"><i data-lucide="file-signature" class="w-5 h-5"></i></div> Contratos
+                        <div class="p-1.5 bg-white rounded shadow-sm text-rose-500"><i data-lucide="file-signature" class="w-5 h-5"></i></div> Generador de Contratos
                     </h2>
                     <button onclick="window.closeContractModal()" class="p-2 text-slate-400 hover:text-red-500 rounded-lg">
                         <i data-lucide="x" class="w-6 h-6"></i>
@@ -403,7 +419,15 @@
                 <div class="flex-1 overflow-y-auto p-6 bg-slate-50">
                     <table class="w-full text-left bg-white rounded-xl shadow-sm border border-slate-200">
                         <thead class="bg-slate-100 text-slate-500 text-[10px] uppercase font-black tracking-wider border-b border-slate-200">
-                            <tr><th class="py-3 px-4">Fecha</th><th class="py-3 px-4">N° Proforma</th><th class="py-3 px-4">Cliente</th><th class="py-3 px-4 text-right">Venta Total</th><th class="py-3 px-4 text-center">% Adelanto</th><th class="py-3 px-4 text-right">A Pagar</th><th class="py-3 px-4 text-center">Acción</th></tr>
+                            <tr>
+                                <th class="py-3 px-4">Fecha</th>
+                                <th class="py-3 px-4">N° Proforma</th>
+                                <th class="py-3 px-4">Cliente</th>
+                                <th class="py-3 px-4 text-right">Venta Total</th>
+                                <th class="py-3 px-4 text-center">% Adelanto</th>
+                                <th class="py-3 px-4 text-right">Adelanto a Pagar</th>
+                                <th class="py-3 px-4 text-center">Acción</th>
+                            </tr>
                         </thead>
                         <tbody id="contractTableBody" class="text-sm divide-y divide-slate-100"></tbody>
                     </table>
@@ -426,7 +450,14 @@
                 </div>
                 <div class="flex-1 overflow-y-auto p-5 bg-slate-50">
                     <table class="w-full text-left bg-white rounded-xl shadow-sm border border-slate-200">
-                        <thead class="bg-slate-100 text-slate-500 text-[10px] uppercase font-black"><th class="py-3 px-4">Descripción</th><th class="py-3 px-4 text-right">Costo</th><th class="py-3 px-4 text-right">Venta</th><th class="py-3 px-4 text-center">Acción</th></thead>
+                        <thead class="bg-slate-100 text-slate-500 text-[10px] uppercase font-black">
+                            <tr>
+                                <th class="py-3 px-4">Descripción</th>
+                                <th class="py-3 px-4 text-right">Costo</th>
+                                <th class="py-3 px-4 text-right">Venta</th>
+                                <th class="py-3 px-4 text-center">Acción</th>
+                            </tr>
+                        </thead>
                         <tbody id="catalogTableBody" class="text-sm divide-y divide-slate-100"></tbody>
                     </table>
                 </div>
@@ -442,9 +473,9 @@
                 </div>
                 <div class="p-6 bg-slate-50 flex flex-col gap-6 overflow-y-auto">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="p-4 bg-orange-50/50 rounded-xl border border-orange-100"><span class="font-bold text-orange-600/80 text-[10px] uppercase">Gasto</span><span id="m_inv" class="block text-xl font-black text-orange-600">S/ 0.00</span></div>
-                        <div class="p-4 bg-blue-50/50 rounded-xl border border-blue-100"><span class="font-bold text-blue-600/80 text-[10px] uppercase">Venta</span><span id="m_ven" class="block text-xl font-black text-blue-600">S/ 0.00</span></div>
-                        <div class="p-4 bg-brand-tech rounded-xl text-white"><span class="font-bold text-blue-200 text-[10px] uppercase">Ganancia</span><span id="m_gan" class="block text-2xl font-black">S/ 0.00</span></div>
+                        <div class="p-4 bg-orange-50/50 rounded-xl border border-orange-100"><span class="font-bold text-orange-600/80 text-[10px] uppercase">Gasto Total</span><span id="m_inv" class="block text-xl font-black text-orange-600">S/ 0.00</span></div>
+                        <div class="p-4 bg-blue-50/50 rounded-xl border border-blue-100"><span class="font-bold text-blue-600/80 text-[10px] uppercase">Venta Total</span><span id="m_ven" class="block text-xl font-black text-blue-600">S/ 0.00</span></div>
+                        <div class="p-4 bg-brand-tech rounded-xl text-white"><span class="font-bold text-blue-200 text-[10px] uppercase">Ganancia Neta</span><span id="m_gan" class="block text-2xl font-black">S/ 0.00</span></div>
                     </div>
                 </div>
             </div>
@@ -454,15 +485,24 @@
         <div id="historyModal" class="hidden fixed inset-0 bg-brand-dark/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
             <div class="bg-white w-full max-w-6xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200">
                 <div class="px-6 py-4 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center bg-slate-50 gap-4">
-                    <h2 class="text-xl font-black text-brand-dark flex items-center gap-2 uppercase"><i data-lucide="database" class="w-5 h-5 text-brand-accent"></i> Historial</h2>
+                    <h2 class="text-xl font-black text-brand-dark flex items-center gap-2 uppercase"><i data-lucide="database" class="w-5 h-5 text-brand-accent"></i> Base de Datos de Proformas</h2>
                     <div class="flex items-center gap-3">
-                        <input type="text" id="searchHistory" oninput="window.renderHistoryTable()" placeholder="Buscar..." class="w-64 px-3 py-2 border rounded-lg text-sm">
+                        <input type="text" id="searchHistory" oninput="window.renderHistoryTable()" placeholder="Buscar cliente o N°..." class="w-64 px-3 py-2 border rounded-lg text-sm">
                         <button onclick="window.closeHistory()" class="p-2 text-slate-400 hover:text-red-500"><i data-lucide="x" class="w-6 h-6"></i></button>
                     </div>
                 </div>
                 <div class="flex-1 overflow-y-auto p-6 bg-slate-50">
                     <table class="w-full text-left bg-white rounded-xl border border-slate-200">
-                        <thead class="bg-slate-100 text-slate-500 text-[10px] uppercase font-black"><th class="py-3 px-4">Fecha</th><th class="py-3 px-4">Proforma</th><th class="py-3 px-4">Cliente</th><th class="py-3 px-4 text-right">Venta</th><th class="py-3 px-4 text-center">Estado</th><th class="py-3 px-4 text-center">Acción</th></thead>
+                        <thead class="bg-slate-100 text-slate-500 text-[10px] uppercase font-black">
+                            <tr>
+                                <th class="py-3 px-4">Fecha</th>
+                                <th class="py-3 px-4">Proforma</th>
+                                <th class="py-3 px-4">Cliente</th>
+                                <th class="py-3 px-4 text-right">Venta</th>
+                                <th class="py-3 px-4 text-center">Estado</th>
+                                <th class="py-3 px-4 text-center">Acción</th>
+                            </tr>
+                        </thead>
                         <tbody id="dbTableBody" class="text-sm divide-y divide-slate-50"></tbody>
                     </table>
                 </div>
@@ -472,23 +512,61 @@
     </main>
 
     <script>
-        // GLOBALS
+        // =========================================================================
+        // VARIABLES GLOBALES Y CONEXIÓN INTACTA A TU BASE DE DATOS GOOGLE SHEETS
+        // =========================================================================
         const MM_TO_PX = 3.7795275591;
+        const PAGE_W = 794;
+        const PAGE_H = 1123;
+        const RENDER_SCALE = 2.5; // Alta Definición 300 DPI
+
         window.WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbw1I4Z1zPHqm0Xps9tFSAH7E0e9Y7eED1rsB3kdX2j3i42rGA1qAFkAi149tAG5wdc/exec";
 
         window.proformaImages = [];
+        window.proformaImageObjects = [];
         window.proformasList = []; 
         window.productCatalog = []; 
         window.currentEditId = null;
         window.items = [{ id: 1, qty: 1, desc: '', cost: 0, price: 0 }];
         window.viewMode = 'detalle';
+        window.renderedCanvases = [];
 
-        window.bgRawImg = null; 
-        window.bgBase64 = null;
-        window.logoBase64 = null; 
-        window.sigBase64 = null;
+        window.bgImgObj = null; 
+        window.logoImgObj = null; 
+        window.sigImgObj = null;
 
-        // Auto-Capitalization
+        // Utilidad de notificación sin usar alert()
+        window.showToast = (msg) => {
+            const toast = document.getElementById('toastNotification');
+            const label = document.getElementById('toastMessage');
+            if (!toast || !label) return;
+            label.innerText = msg;
+            toast.classList.remove('hidden');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => toast.classList.add('hidden'), 3200);
+        };
+
+        // Utilidad de confirmación sin usar confirm()
+        window.askConfirm = (title, text, onConfirm) => {
+            const modal = document.getElementById('confirmDialogModal');
+            document.getElementById('confirmDialogTitle').innerText = title;
+            document.getElementById('confirmDialogText').innerText = text;
+            modal.classList.remove('hidden');
+
+            const okBtn = document.getElementById('confirmOkBtn');
+            const cancelBtn = document.getElementById('confirmCancelBtn');
+
+            const cleanup = () => {
+                modal.classList.add('hidden');
+                okBtn.onclick = null;
+                cancelBtn.onclick = null;
+            };
+
+            okBtn.onclick = () => { cleanup(); onConfirm(); };
+            cancelBtn.onclick = () => { cleanup(); };
+        };
+
+        // Auto-Mayúsculas
         document.addEventListener('input', function(e) {
             if ((e.target.tagName === 'INPUT' && e.target.type === 'text') || e.target.tagName === 'TEXTAREA') {
                 if (e.target.id === 'f_yape_qr_url' || e.target.id === 'searchHistory') return;
@@ -511,418 +589,923 @@
             }
         });
 
+        // Copia de Seguridad Local
+        window.backupDatabase = () => {
+            const backupPayload = {
+                timestamp: new Date().toISOString(),
+                proformasCount: window.proformasList.length,
+                catalogCount: window.productCatalog.length,
+                proformas: window.proformasList,
+                products: window.productCatalog
+            };
+            const blob = new Blob([JSON.stringify(backupPayload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const dateTag = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `Backup_KGB_ProformaTech_${dateTag}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            window.showToast("Copia de seguridad descargada con éxito.");
+        };
+
         window.resetLayoutDefaults = () => {
-            document.getElementById('cfg_mTop').value = 15;
-            document.getElementById('cfg_mBottom').value = 20;
-            document.getElementById('cfg_mLeft').value = 15;
-            document.getElementById('cfg_mRight').value = 15;
+            document.getElementById('cfg_mTop').value = 14;
+            document.getElementById('cfg_mBottom').value = 16;
+            document.getElementById('cfg_mLeft').value = 14;
+            document.getElementById('cfg_mRight').value = 14;
             document.getElementById('cfg_bgOpacity').value = 100;
-            window.reloadBgOpacity();
+            document.getElementById('cfg_glassOpacity').value = 72;
+            window.updatePreview();
         };
 
         window.getLayoutConfig = () => {
-            const mTopMm = parseFloat(document.getElementById('cfg_mTop').value) || 15;
-            const mBottomMm = parseFloat(document.getElementById('cfg_mBottom').value) || 20;
-            const mLeftMm = parseFloat(document.getElementById('cfg_mLeft').value) || 15;
-            const mRightMm = parseFloat(document.getElementById('cfg_mRight').value) || 15;
+            const mTopMm = parseFloat(document.getElementById('cfg_mTop').value) || 14;
+            const mBottomMm = parseFloat(document.getElementById('cfg_mBottom').value) || 16;
+            const mLeftMm = parseFloat(document.getElementById('cfg_mLeft').value) || 14;
+            const mRightMm = parseFloat(document.getElementById('cfg_mRight').value) || 14;
             const showGuides = document.getElementById('cfg_showGuides').checked;
+            const bgOpacity = Math.min(100, Math.max(5, parseFloat(document.getElementById('cfg_bgOpacity')?.value) || 100)) / 100;
+            const glassOpacity = Math.min(98, Math.max(20, parseFloat(document.getElementById('cfg_glassOpacity')?.value) || 72)) / 100;
 
             const topPx = Math.round(mTopMm * MM_TO_PX);
             const bottomPx = Math.round(mBottomMm * MM_TO_PX);
             const leftPx = Math.round(mLeftMm * MM_TO_PX);
             const rightPx = Math.round(mRightMm * MM_TO_PX);
 
-            const maxContentHeight = 1123 - topPx - bottomPx;
-            return { mTopMm, mBottomMm, topPx, bottomPx, leftPx, rightPx, showGuides, maxContentHeight };
+            return { topPx, bottomPx, leftPx, rightPx, showGuides, bgOpacity, glassOpacity };
         };
 
-        window.createA4Page = (pageNumber, cfg) => {
-            const page = document.createElement('div');
-            page.className = 'a4-page';
-            page.style.padding = `${cfg.topPx}px ${cfg.rightPx}px ${cfg.bottomPx}px ${cfg.leftPx}px`;
-            
-            const bgSrc = window.bgBase64 || 'https://i.imgur.com/fObiYn6.png';
-            const opVal = (parseFloat(document.getElementById('cfg_bgOpacity')?.value) || 100) / 100;
-            const bgStyle = window.bgBase64 ? 'opacity: 1;' : `opacity: ${opVal};`;
-            
-            const guideHtml = cfg.showGuides ? `
-                <div class="margin-guide-box" style="top: ${cfg.topPx}px; bottom: ${cfg.bottomPx}px; left: ${cfg.leftPx}px; right: ${cfg.rightPx}px;">
-                    <span class="margin-guide-label">Hoja ${pageNumber}</span>
-                </div>
-            ` : '';
-
-            page.innerHTML = `
-                <img src="${bgSrc}" crossorigin="anonymous" class="absolute inset-0 w-full h-full object-fill -z-10 pointer-events-none" style="${bgStyle}">
-                <div class="page-badge absolute top-2 left-3 bg-slate-900/80 text-white text-[10px] font-black px-2.5 py-0.5 rounded shadow z-30">HOJA ${pageNumber}</div>
-                ${guideHtml}
-                <div class="page-content"></div>
-            `;
-            return page;
-        };
-
-        window.reloadBgOpacity = () => {
-            if (!window.bgRawImg) return window.updatePreview();
-            const opVal = (parseFloat(document.getElementById('cfg_bgOpacity')?.value) || 100) / 100;
-            const canvas = document.createElement('canvas');
-            canvas.width = window.bgRawImg.width; canvas.height = window.bgRawImg.height;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.globalAlpha = opVal; ctx.drawImage(window.bgRawImg, 0, 0);
-            window.bgBase64 = canvas.toDataURL('image/jpeg', 0.95);
-            window.updatePreview();
-        };
-
+        // Precarga de imágenes de marca + Fuentes Tecnológicas
         const preloadAllAssets = () => {
-            const bgImg = new Image();
-            bgImg.crossOrigin = 'Anonymous'; bgImg.src = 'https://i.imgur.com/fObiYn6.png';
-            bgImg.onload = () => { window.bgRawImg = bgImg; window.reloadBgOpacity(); };
-
-            const toDataUrl = (url, callback) => {
-                const img = new Image(); img.crossOrigin = 'Anonymous'; img.src = url;
-                img.onload = () => {
-                    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
-                    c.getContext('2d').drawImage(img, 0, 0); callback(c.toDataURL('image/png'));
-                };
+            const loadImg = (url, cb) => {
+                const img = new Image();
+                img.crossOrigin = 'Anonymous';
+                img.onload = () => cb(img);
+                img.onerror = () => cb(null);
+                img.src = url;
             };
-            toDataUrl('https://i.imgur.com/Dla3rBv.png', (b64) => { window.logoBase64 = b64; window.updatePreview(); });
-            toDataUrl('https://i.imgur.com/R2Wi8kr.png', (b64) => { window.sigBase64 = b64; window.updatePreview(); });
+            loadImg('https://i.imgur.com/fObiYn6.png', (img) => { window.bgImgObj = img; window.updatePreview(); });
+            loadImg('https://i.imgur.com/Dla3rBv.png', (img) => { window.logoImgObj = img; window.updatePreview(); });
+            loadImg('https://i.imgur.com/R2Wi8kr.png', (img) => { window.sigImgObj = img; window.updatePreview(); });
+
+            if (document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(() => {
+                    window.updatePreview();
+                });
+            }
         };
 
+        // =========================================================================
+        // UTILIDADES GRÁFICAS DEL MOTOR GLASS-TECH CANVAS 2D
+        // =========================================================================
+        function drawRoundedRect(ctx, x, y, w, h, r) {
+            const radius = Math.min(r, w / 2, h / 2);
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + w - radius, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+            ctx.lineTo(x + w, y + h - radius);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+            ctx.lineTo(x + radius, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        function wrapCanvasText(ctx, text, maxWidth) {
+            const rawLines = String(text || '-').split('\n');
+            const lines = [];
+            rawLines.forEach(raw => {
+                const words = raw.split(/\s+/).filter(Boolean);
+                if (words.length === 0) {
+                    lines.push('');
+                    return;
+                }
+                let currentLine = words[0];
+                for (let i = 1; i < words.length; i++) {
+                    const testLine = currentLine + ' ' + words[i];
+                    if (ctx.measureText(testLine).width <= maxWidth) {
+                        currentLine = testLine;
+                    } else {
+                        lines.push(currentLine);
+                        currentLine = words[i];
+                    }
+                }
+                lines.push(currentLine);
+            });
+            return lines.length > 0 ? lines : ['-'];
+        }
+
+        function createHiDPICanvasPage(cfg) {
+            const card = document.createElement('div');
+            card.className = 'a4-canvas-card';
+            const canvas = document.createElement('canvas');
+            canvas.width = PAGE_W * RENDER_SCALE;
+            canvas.height = PAGE_H * RENDER_SCALE;
+            card.appendChild(canvas);
+
+            const ctx = canvas.getContext('2d');
+            ctx.scale(RENDER_SCALE, RENDER_SCALE);
+
+            // Fondo blanco base
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, PAGE_W, PAGE_H);
+
+            // Imagen de fondo tecnológica KGB
+            if (window.bgImgObj) {
+                ctx.save();
+                ctx.globalAlpha = cfg.bgOpacity;
+                ctx.drawImage(window.bgImgObj, 0, 0, PAGE_W, PAGE_H);
+                ctx.restore();
+            }
+
+            // Guías de margen opcionales
+            if (cfg.showGuides) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.45)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(cfg.leftPx, cfg.topPx, PAGE_W - cfg.leftPx - cfg.rightPx, PAGE_H - cfg.topPx - cfg.bottomPx);
+                ctx.restore();
+            }
+
+            return { card, canvas, ctx };
+        }
+
+        // =========================================================================
+        // MOTOR PRINCIPAL: RENDERIZADO DE LA PROFORMA (GLASS-TECH UI + EXO 2)
+        // =========================================================================
         window.updatePreview = () => {
             const wrapper = document.getElementById('proforma-pdf-wrapper');
             if (!wrapper) return;
 
-            const scaler = document.getElementById('preview-scaler');
-            const prevTransform = scaler ? scaler.style.transform : 'none';
-            if (scaler) scaler.style.transform = 'scale(1)';
+            const applyIgv = document.getElementById('cfg_igv') ? document.getElementById('cfg_igv').checked : false;
+            const igvPill = document.getElementById('igvStatusPill');
+            if (igvPill) {
+                if (applyIgv) {
+                    igvPill.className = "text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-blue-500/30 text-cyan-200 border border-cyan-400/40";
+                    igvPill.innerText = "Gravado (18%)";
+                } else {
+                    igvPill.className = "text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30";
+                    igvPill.innerText = "Exonerado (0%)";
+                }
+            }
 
             wrapper.innerHTML = '';
+            window.renderedCanvases = [];
+
             const cfg = window.getLayoutConfig();
-            
-            const profNum = document.getElementById('f_profNumber').value || '0000';
+            const contentX = cfg.leftPx;
+            const contentW = PAGE_W - cfg.leftPx - cfg.rightPx;
+            const maxBottomY = PAGE_H - cfg.bottomPx;
+
+            const profNum = (document.getElementById('f_profNumber').value || '0000').replace(/^PF-/i, '').trim();
             const dateParts = (document.getElementById('f_date').value || '').split('-');
             const dateStr = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : '--/--/----';
-            const clientName = document.getElementById('f_clientName').value || '--------------------';
+            const clientName = document.getElementById('f_clientName').value || 'CLIENTE GENERAL';
             const clientDoc = document.getElementById('f_clientDoc').value || '--';
             const clientPhone = document.getElementById('f_clientPhone').value || '--';
             const clientAddress = document.getElementById('f_clientAddress').value || '--';
 
-            const state = { wrapper: wrapper, pageCount: 1, currentPage: null, contentArea: null, currentTbody: null };
-            
-            const startNewPage = () => {
-                state.pageCount++;
-                state.currentPage = window.createA4Page(state.pageCount, cfg);
-                wrapper.appendChild(state.currentPage);
-                state.contentArea = state.currentPage.querySelector('.page-content');
-            };
+            let pages = [];
+            let currentPageObj = createHiDPICanvasPage(cfg);
+            pages.push(currentPageObj);
+            let ctx = currentPageObj.ctx;
+            let curY = cfg.topPx;
 
-            // TABLA MAESTRA DE PRODUCTOS CON NUDGE (TOP: -1.5px) Y PADDING DELGADO
-            const createTableStructure = () => {
-                const tableWrap = document.createElement('div');
-                tableWrap.className = 'w-full pb-4 avoid-page-break';
-                tableWrap.innerHTML = `
-                    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; font-family: 'Inter', sans-serif;">
-                        <thead>
-                            <tr>
-                                <th width="12%" align="center" valign="middle" style="background-color: #1e40af; color: #ffffff; padding: 6px; font-size: 10px; font-weight: 900; letter-spacing: 0.5px; border: 1px solid #1e40af;">
-                                    <div style="position: relative; top: -1px;">CANT</div>
-                                </th>
-                                <th width="${window.viewMode === 'detalle' ? '54%' : '66%'}" align="center" valign="middle" style="background-color: #1e40af; color: #ffffff; padding: 6px; font-size: 10px; font-weight: 900; letter-spacing: 0.5px; border: 1px solid #1e40af; border-left: none;">
-                                    <div style="position: relative; top: -1px;">DESCRIPCIÓN DEL ARTÍCULO</div>
-                                </th>
-                                ${window.viewMode === 'detalle' ? `
-                                <th width="17%" align="center" valign="middle" style="background-color: #1e40af; color: #ffffff; padding: 6px; font-size: 10px; font-weight: 900; letter-spacing: 0.5px; border: 1px solid #1e40af; border-left: none;">
-                                    <div style="position: relative; top: -1px;">P. UNIT</div>
-                                </th>` : ''}
-                                <th width="17%" align="center" valign="middle" style="background-color: #1e40af; color: #ffffff; padding: 6px; font-size: 10px; font-weight: 900; letter-spacing: 0.5px; border: 1px solid #1e40af; border-left: none;">
-                                    <div style="position: relative; top: -1px;">IMPORTE</div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody style="background-color: #ffffff;"></tbody>
-                    </table>
-                `;
-                return tableWrap;
-            };
+            // 1. DIBUJAR CABECERA CORPORATIVA CON LOGO MÁS GRANDE Y TIPOGRAFÍA TECH
+            const drawHeaderAndClient = (context, startY) => {
+                let y = startY;
+                const headerH = 84; // Altura ampliada para lucir el logo un poquito más grande
 
-            state.currentPage = window.createA4Page(1, cfg);
-            wrapper.appendChild(state.currentPage);
-            state.contentArea = state.currentPage.querySelector('.page-content');
+                // A. Logo KGB (Aumentado de tamaño a pedido del usuario: hasta 200x82px)
+                if (window.logoImgObj) {
+                    const maxLogoW = 200;
+                    const maxLogoH = 82;
+                    const ratio = Math.min(maxLogoW / window.logoImgObj.width, maxLogoH / window.logoImgObj.height);
+                    const lw = window.logoImgObj.width * ratio;
+                    const lh = window.logoImgObj.height * ratio;
+                    context.drawImage(window.logoImgObj, contentX, y + (headerH - lh) / 2, lw, lh);
+                } else {
+                    context.fillStyle = '#1e3a8a';
+                    context.font = '900 24px "Orbitron", sans-serif';
+                    context.textBaseline = 'middle';
+                    context.textAlign = 'left';
+                    context.fillText('KGB TECH', contentX, y + headerH / 2);
+                }
 
-            // CABECERA PERFECTA (TABLAS)
-            const headerEl = document.createElement('div');
-            headerEl.style.marginBottom = '20px';
-            headerEl.innerHTML = `
-                <table width="100%" cellpadding="0" cellspacing="0" style="font-family: 'Inter', sans-serif;">
-                    <tr>
-                        <td width="25%" valign="middle">
-                            <img src="${window.logoBase64 || 'https://i.imgur.com/Dla3rBv.png'}" crossorigin="anonymous" style="height: 60px; object-fit: contain;">
-                        </td>
-                        <td width="45%" valign="middle" style="padding-left: 15px;">
-                            <div style="font-size: 10px; font-weight: 800; color: #000000; line-height: 1.3;">
-                                <p style="margin:0;"><strong style="font-weight: 900;">RAZÓN SOCIAL:</strong> KGB DISTRIBUIDORES</p>
-                                <p style="margin:0;"><strong style="font-weight: 900;">RUC:</strong> 20600094719 &nbsp;|&nbsp; <strong style="font-weight: 900;">CEL:</strong> 902 532 240</p>
-                                <p style="margin:0;"><strong style="font-weight: 900;">DIRECCIÓN:</strong> Jr. 2 de mayo. 477 Int 201</p>
-                                <p style="margin:0;"><strong style="font-weight: 900;">E-MAIL:</strong> ramirez0072@hotmail.com</p>
-                            </div>
-                        </td>
-                        <td width="30%" align="right" valign="middle">
-                            <table style="width: 150px; background-color: #1d4ed8; border-radius: 6px; float: right;" cellpadding="0" cellspacing="0">
-                                <tr>
-                                    <td style="padding: 8px; text-align: center;">
-                                        <div style="font-size: 14px; font-weight: 900; color: #ffffff; margin: 0; line-height: 1;">PROFORMA</div>
-                                        <div style="font-size: 12px; font-weight: 900; color: #93c5fd; margin-top: 4px; line-height: 1;">N° PF-${profNum}</div>
-                                    </td>
-                                </tr>
-                            </table>
-                            <div style="clear: both; margin-top: 6px; font-size: 10px; font-weight: 900; color: #475569; letter-spacing: 0.5px;">
-                                FECHA: <span style="color: #000000;">${dateStr}</span>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
+                // Línea divisoria vertical tecnológica con degradado cian
+                const divX = contentX + 208;
+                const vGrad = context.createLinearGradient(divX, y + 8, divX, y + headerH - 8);
+                vGrad.addColorStop(0, 'rgba(6, 182, 212, 0.1)');
+                vGrad.addColorStop(0.5, 'rgba(37, 99, 235, 0.65)');
+                vGrad.addColorStop(1, 'rgba(6, 182, 212, 0.1)');
+                context.strokeStyle = vGrad;
+                context.lineWidth = 1.8;
+                context.beginPath();
+                context.moveTo(divX, y + 8);
+                context.lineTo(divX, y + headerH - 8);
+                context.stroke();
 
-                <div style="margin-top: 15px; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; background: #ffffff;">
-                    <table width="100%" cellpadding="0" cellspacing="0" style="font-family: 'Inter', sans-serif;">
-                        <tr>
-                            <td width="40%" style="padding: 10px 15px; border-right: 1px solid #cbd5e1;">
-                                <div style="font-size: 9px; font-weight: 900; color: #3b82f6; text-transform: uppercase; margin-bottom: 2px;">Destinatario</div>
-                                <div style="font-size: 12px; font-weight: 900; color: #000000; text-transform: uppercase;">${clientName}</div>
-                            </td>
-                            <td width="25%" style="padding: 10px 15px; border-right: 1px solid #cbd5e1;">
-                                <div style="font-size: 9px; font-weight: 900; color: #94a3b8; text-transform: uppercase; margin-bottom: 2px;">DNI/RUC &nbsp;|&nbsp; Teléfono</div>
-                                <div style="font-size: 11px; font-weight: 800; color: #000000;">${clientDoc} &nbsp;|&nbsp; ${clientPhone}</div>
-                            </td>
-                            <td width="35%" style="padding: 10px 15px;">
-                                <div style="font-size: 9px; font-weight: 900; color: #94a3b8; text-transform: uppercase; margin-bottom: 2px;">Dirección</div>
-                                <div style="font-size: 11px; font-weight: 800; color: #000000;">${clientAddress}</div>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-            `;
-            state.contentArea.appendChild(headerEl);
+                // B. Datos de la Empresa (Tipografía Tecnológica Exo 2, Súper Nítida)
+                const infoX = contentX + 220;
+                const infoLines = [
+                    { label: 'RAZÓN SOCIAL:', val: ' KGB DISTRIBUIDORES' },
+                    { label: 'RUC:', val: ' 20600094719   |   ', label2: 'CEL:', val2: ' 902 532 240' },
+                    { label: 'DIRECCIÓN:', val: ' JR. 2 DE MAYO 477 INT 201' },
+                    { label: 'E-MAIL:', val: ' RAMIREZ0072@HOTMAIL.COM' }
+                ];
+                const lineSpacing = 16.5;
+                const totalInfoH = infoLines.length * lineSpacing;
+                let infoY = y + (headerH - totalInfoH) / 2 + (lineSpacing / 2);
 
-            // DIBUJAR PRODUCTOS EN FILAS DELGADAS Y CENTRADAS
-            let currentTableWrap = createTableStructure();
-            state.contentArea.appendChild(currentTableWrap);
-            state.currentTbody = currentTableWrap.querySelector('tbody');
+                context.textBaseline = 'middle';
+                context.textAlign = 'left';
+                infoLines.forEach(line => {
+                    let cx = infoX;
+                    context.font = '900 10.2px "Exo 2", sans-serif';
+                    context.fillStyle = '#0f172a';
+                    context.fillText(line.label, cx, infoY);
+                    cx += context.measureText(line.label).width;
 
-            let sumVenta = 0;
-            if (window.viewMode === 'detalle') {
-                window.items.forEach((item, index) => {
-                    const rowTotal = item.qty * item.price; 
-                    sumVenta += rowTotal;
-                    
-                    const tr = document.createElement('tr');
-                    tr.style.backgroundColor = index % 2 === 0 ? '#ffffff' : '#f8fafc';
-                    tr.innerHTML = `
-                        <td align="center" valign="middle" style="padding: 4px 6px; border-bottom: 1px solid #cbd5e1; border-left: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1;">
-                            <div style="position: relative; top: -1.5px; font-weight: 900; color: #3b82f6; font-size: 11px;">${item.qty}</div>
-                        </td>
-                        <td valign="middle" style="padding: 4px 6px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1;">
-                            <div style="position: relative; top: -1.5px; font-weight: 800; color: #000000; font-size: 10px; white-space: pre-wrap; line-height: 1.2;">${item.desc || '-'}</div>
-                        </td>
-                        <td align="center" valign="middle" style="padding: 4px 6px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1;">
-                            <div style="position: relative; top: -1.5px; font-family: monospace; font-weight: 600; color: #475569; font-size: 10.5px; white-space: nowrap;">${item.price > 0 ? `S/&nbsp;${item.price.toFixed(2)}` : ''}</div>
-                        </td>
-                        <td align="center" valign="middle" style="padding: 4px 6px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1;">
-                            <div style="position: relative; top: -1.5px; font-weight: 900; font-family: monospace; color: #000000; font-size: 11px; white-space: nowrap;">${rowTotal > 0 ? `S/&nbsp;${rowTotal.toFixed(2)}` : ''}</div>
-                        </td>
-                    `;
-                    state.currentTbody.appendChild(tr);
+                    context.font = '700 10.2px "Exo 2", sans-serif';
+                    context.fillStyle = '#1e293b';
+                    context.fillText(line.val, cx, infoY);
+                    cx += context.measureText(line.val).width;
 
-                    if (state.contentArea.offsetHeight > cfg.maxContentHeight) {
-                        state.currentTbody.removeChild(tr);
-                        startNewPage();
-                        currentTableWrap = createTableStructure();
-                        state.contentArea.appendChild(currentTableWrap);
-                        state.currentTbody = currentTableWrap.querySelector('tbody');
-                        state.currentTbody.appendChild(tr);
+                    if (line.label2) {
+                        context.font = '900 10.2px "Exo 2", sans-serif';
+                        context.fillStyle = '#0f172a';
+                        context.fillText(line.label2, cx, infoY);
+                        cx += context.measureText(line.label2).width;
+
+                        context.font = '700 10.2px "Exo 2", sans-serif';
+                        context.fillStyle = '#1e293b';
+                        context.fillText(line.val2, cx, infoY);
                     }
+                    infoY += lineSpacing;
+                });
+
+                // C. Insignia Tecnológica PROFORMA (Degradado Cyber + Fuente Orbitron)
+                const badgeW = 176;
+                const badgeH = 56;
+                const badgeX = contentX + contentW - badgeW;
+                const badgeY = y + 4;
+
+                context.save();
+                context.shadowColor = 'rgba(37, 99, 235, 0.28)';
+                context.shadowBlur = 12;
+                context.shadowOffsetY = 4;
+                const bGrad = context.createLinearGradient(badgeX, badgeY, badgeX + badgeW, badgeY + badgeH);
+                bGrad.addColorStop(0, '#090d16');
+                bGrad.addColorStop(0.5, '#1e3a8a');
+                bGrad.addColorStop(1, '#0284c7');
+                drawRoundedRect(context, badgeX, badgeY, badgeW, badgeH, 10);
+                context.fillStyle = bGrad;
+                context.fill();
+                context.restore();
+
+                // Borde brillante sutil en la insignia
+                drawRoundedRect(context, badgeX, badgeY, badgeW, badgeH, 10);
+                context.strokeStyle = 'rgba(56, 189, 248, 0.55)';
+                context.lineWidth = 1.2;
+                context.stroke();
+
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.fillStyle = '#ffffff';
+                context.font = '900 13.5px "Orbitron", sans-serif';
+                context.fillText('PROFORMA', badgeX + badgeW / 2, badgeY + 20);
+
+                context.fillStyle = '#7dd3fc';
+                context.font = '800 13px "JetBrains Mono", monospace';
+                context.fillText(`N° PF-${profNum}`, badgeX + badgeW / 2, badgeY + 40);
+
+                // Fecha debajo de la caja azul
+                context.textAlign = 'right';
+                context.fillStyle = '#334155';
+                context.font = '800 10px "Exo 2", sans-serif';
+                context.fillText(`FECHA: ${dateStr}`, badgeX + badgeW - 2, badgeY + badgeH + 13);
+
+                y += headerH + 12;
+
+                // D. Barra Horizontal del Cliente (Efecto Cristal / Glassmorphism)
+                const clientBoxH = 46;
+                context.save();
+                context.shadowColor = 'rgba(15, 23, 42, 0.07)';
+                context.shadowBlur = 10;
+                context.shadowOffsetY = 3;
+                drawRoundedRect(context, contentX, y, contentW, clientBoxH, 9);
+                context.fillStyle = `rgba(255, 255, 255, ${Math.min(0.95, cfg.glassOpacity + 0.12)})`;
+                context.fill();
+                context.restore();
+
+                drawRoundedRect(context, contentX, y, contentW, clientBoxH, 9);
+                context.strokeStyle = 'rgba(59, 130, 246, 0.32)';
+                context.lineWidth = 1.1;
+                context.stroke();
+
+                // Barra lateral izquierda neón en la tarjeta del cliente
+                context.save();
+                drawRoundedRect(context, contentX, y, 5, clientBoxH, 3);
+                const cAccent = context.createLinearGradient(contentX, y, contentX, y + clientBoxH);
+                cAccent.addColorStop(0, '#2563eb');
+                cAccent.addColorStop(1, '#06b6d4');
+                context.fillStyle = cAccent;
+                context.fill();
+                context.restore();
+
+                const col1W = contentW * 0.44;
+                const col2W = contentW * 0.28;
+
+                // Divisores internos suaves
+                context.strokeStyle = 'rgba(148, 163, 184, 0.28)';
+                context.lineWidth = 1;
+                context.beginPath();
+                context.moveTo(contentX + col1W, y + 8);
+                context.lineTo(contentX + col1W, y + clientBoxH - 8);
+                context.moveTo(contentX + col1W + col2W, y + 8);
+                context.lineTo(contentX + col1W + col2W, y + clientBoxH - 8);
+                context.stroke();
+
+                context.textAlign = 'left';
+                context.textBaseline = 'middle';
+
+                // Columna 1: Destinatario
+                context.fillStyle = '#0284c7';
+                context.font = '800 8.5px "Orbitron", sans-serif';
+                context.fillText('DESTINATARIO', contentX + 14, y + 14);
+
+                context.fillStyle = '#020617';
+                context.font = '800 12px "Exo 2", sans-serif';
+                let dispName = clientName;
+                while (context.measureText(dispName).width > col1W - 24 && dispName.length > 5) {
+                    dispName = dispName.slice(0, -1);
+                }
+                context.fillText(dispName, contentX + 14, y + 31);
+
+                // Columna 2: DNI/RUC | Teléfono
+                const c2X = contentX + col1W + 12;
+                context.fillStyle = '#475569';
+                context.font = '800 8.5px "Orbitron", sans-serif';
+                context.fillText('DNI / RUC   |   TELÉFONO', c2X, y + 14);
+
+                context.fillStyle = '#020617';
+                context.font = '700 11px "JetBrains Mono", monospace';
+                context.fillText(`${clientDoc}  |  ${clientPhone}`, c2X, y + 31);
+
+                // Columna 3: Dirección
+                const c3X = contentX + col1W + col2W + 12;
+                const col3MaxW = contentW - col1W - col2W - 20;
+                context.fillStyle = '#475569';
+                context.font = '800 8.5px "Orbitron", sans-serif';
+                context.fillText('DIRECCIÓN', c3X, y + 14);
+
+                context.fillStyle = '#020617';
+                context.font = '700 10.5px "Exo 2", sans-serif';
+                let dispAddr = clientAddress;
+                while (context.measureText(dispAddr).width > col3MaxW && dispAddr.length > 5) {
+                    dispAddr = dispAddr.slice(0, -1);
+                }
+                context.fillText(dispAddr, c3X, y + 31);
+
+                return y + clientBoxH + 14;
+            };
+
+            // 2. CABECERA DE TABLA DE PRODUCTOS (DEGRADADO CONTINUO + NEÓN CIAN)
+            const drawTableHeader = (context, startY) => {
+                const thH = 30;
+                context.save();
+                context.shadowColor = 'rgba(15, 23, 42, 0.15)';
+                context.shadowBlur = 8;
+                context.shadowOffsetY = 2;
+                const tGrad = context.createLinearGradient(contentX, startY, contentX + contentW, startY);
+                tGrad.addColorStop(0, '#090d16');
+                tGrad.addColorStop(0.5, '#1e3a8a');
+                tGrad.addColorStop(1, '#0284c7');
+
+                drawRoundedRect(context, contentX, startY, contentW, thH, 7);
+                context.fillStyle = tGrad;
+                context.fill();
+                context.restore();
+
+                // Línea brillante inferior cian
+                context.strokeStyle = '#38bdf8';
+                context.lineWidth = 1.5;
+                context.beginPath();
+                context.moveTo(contentX + 6, startY + thH);
+                context.lineTo(contentX + contentW - 6, startY + thH);
+                context.stroke();
+
+                context.fillStyle = '#ffffff';
+                context.font = '800 9.5px "Orbitron", sans-serif';
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                const midY = startY + thH / 2;
+
+                if (window.viewMode === 'detalle') {
+                    const wCant = contentW * 0.10;
+                    const wDesc = contentW * 0.56;
+                    const wUnit = contentW * 0.17;
+                    const wImp = contentW * 0.17;
+
+                    context.fillText('CANT', contentX + wCant / 2, midY);
+                    context.fillText('DESCRIPCIÓN DEL ARTÍCULO', contentX + wCant + wDesc / 2, midY);
+                    context.fillText('P. UNIT', contentX + wCant + wDesc + wUnit / 2, midY);
+                    context.fillText('IMPORTE', contentX + wCant + wDesc + wUnit + wImp / 2, midY);
+                } else {
+                    const wCant = contentW * 0.10;
+                    const wDesc = contentW * 0.70;
+                    const wImp = contentW * 0.20;
+
+                    context.fillText('CANT', contentX + wCant / 2, midY);
+                    context.fillText('DESCRIPCIÓN DEL ARTÍCULO', contentX + wCant + wDesc / 2, midY);
+                    context.fillText('IMPORTE', contentX + wCant + wDesc + wImp / 2, midY);
+                }
+
+                return startY + thH + 4;
+            };
+
+            // Dibujar cabecera en Hoja 1
+            curY = drawHeaderAndClient(ctx, curY);
+            curY = drawTableHeader(ctx, curY);
+
+            // 3. DIBUJAR FILAS DE PRODUCTOS (ESTILO GLASSMORPHISM SIN CUADRÍCULA EXCEL)
+            const footerReservedH = 148;
+
+            if (window.viewMode === 'detalle') {
+                const wCant = contentW * 0.10;
+                const wDesc = contentW * 0.56;
+                const wUnit = contentW * 0.17;
+                const wImp = contentW * 0.17;
+
+                window.items.forEach((item, index) => {
+                    const rowTotal = (item.qty || 0) * (item.price || 0);
+                    ctx.font = '700 10.5px "Exo 2", sans-serif';
+                    const descLines = wrapCanvasText(ctx, item.desc || '-', wDesc - 20);
+                    const lineH = 14;
+                    const rowH = Math.max(28, descLines.length * lineH + 12);
+
+                    // Si supera el espacio de la hoja, crear nueva hoja A4
+                    if (curY + rowH > maxBottomY - 20) {
+                        currentPageObj = createHiDPICanvasPage(cfg);
+                        pages.push(currentPageObj);
+                        ctx = currentPageObj.ctx;
+                        curY = cfg.topPx;
+                        curY = drawTableHeader(ctx, curY);
+                    }
+
+                    // Fondo translúcido Glassmorphism (deja ver sutilmente el circuito de fondo)
+                    const rowAlpha = index % 2 === 0 ? cfg.glassOpacity : Math.max(0.25, cfg.glassOpacity - 0.15);
+                    drawRoundedRect(ctx, contentX, curY, contentW, rowH - 2, 6);
+                    ctx.fillStyle = index % 2 === 0 
+                        ? `rgba(255, 255, 255, ${rowAlpha})` 
+                        : `rgba(224, 242, 254, ${rowAlpha})`;
+                    ctx.fill();
+
+                    // Borde sutil horizontal inferior con brillo tecnológico
+                    const lineGrad = ctx.createLinearGradient(contentX, curY + rowH - 2, contentX + contentW, curY + rowH - 2);
+                    lineGrad.addColorStop(0, 'rgba(59, 130, 246, 0.25)');
+                    lineGrad.addColorStop(0.5, 'rgba(148, 163, 184, 0.35)');
+                    lineGrad.addColorStop(1, 'rgba(6, 182, 212, 0.25)');
+                    ctx.strokeStyle = lineGrad;
+                    ctx.lineWidth = 0.8;
+                    ctx.beginPath();
+                    ctx.moveTo(contentX + 8, curY + rowH - 2);
+                    ctx.lineTo(contentX + contentW - 8, curY + rowH - 2);
+                    ctx.stroke();
+
+                    const rowMidY = curY + (rowH - 2) / 2;
+
+                    // Pastilla tecnológica para la Cantidad
+                    const pillW = 34;
+                    const pillH = 19;
+                    const pillX = contentX + (wCant - pillW) / 2;
+                    const pillY = rowMidY - pillH / 2;
+                    drawRoundedRect(ctx, pillX, pillY, pillW, pillH, 5);
+                    ctx.fillStyle = 'rgba(37, 99, 235, 0.12)';
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(37, 99, 235, 0.35)';
+                    ctx.lineWidth = 0.8;
+                    ctx.stroke();
+
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = '#1d4ed8';
+                    ctx.font = '800 11px "JetBrains Mono", monospace';
+                    ctx.fillText(String(item.qty || 1), contentX + wCant / 2, rowMidY);
+
+                    // Descripción (Centrada verticalmente en su fila con fuente Exo 2)
+                    ctx.textAlign = 'left';
+                    ctx.fillStyle = '#0f172a';
+                    ctx.font = '700 10.5px "Exo 2", sans-serif';
+                    const totalTextH = descLines.length * lineH;
+                    let textY = curY + ((rowH - 2) - totalTextH) / 2 + (lineH / 2);
+                    descLines.forEach(line => {
+                        ctx.fillText(line, contentX + wCant + 10, textY);
+                        textY += lineH;
+                    });
+
+                    // Precio Unitario (Fuente JetBrains Mono)
+                    ctx.textAlign = 'center';
+                    ctx.fillStyle = '#334155';
+                    ctx.font = '600 10.5px "JetBrains Mono", monospace';
+                    if (item.price > 0) {
+                        ctx.fillText(`S/ ${item.price.toFixed(2)}`, contentX + wCant + wDesc + wUnit / 2, rowMidY);
+                    }
+
+                    // Importe Total de la Fila
+                    ctx.fillStyle = '#020617';
+                    ctx.font = '800 11px "JetBrains Mono", monospace';
+                    if (rowTotal > 0) {
+                        ctx.fillText(`S/ ${rowTotal.toFixed(2)}`, contentX + wCant + wDesc + wUnit + wImp / 2, rowMidY);
+                    }
+
+                    curY += rowH;
                 });
             } else {
-                window.items.forEach(item => { sumVenta += (item.qty * item.price); });
-                let finalTotal = sumVenta;
-                const mTotal = document.getElementById('f_manualTotal')?.value;
-                if (mTotal && mTotal.trim() !== '') finalTotal = parseFloat(mTotal) || 0;
-                
-                const tr = document.createElement('tr');
-                tr.style.backgroundColor = '#ffffff';
-                tr.innerHTML = `
-                    <td align="center" valign="middle" style="padding: 6px; border-bottom: 1px solid #cbd5e1; border-left: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1;">
-                        <div style="position: relative; top: -1.5px; font-weight: 900; color: #3b82f6; font-size: 11px;">1</div>
-                    </td>
-                    <td valign="middle" style="padding: 6px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1;">
-                        <div style="position: relative; top: -1.5px; font-weight: 900; color: #000000; font-size: 11px; white-space: pre-wrap; line-height: 1.2;">${document.getElementById('f_generalDesc').value || 'EQUIPO TECNOLÓGICO'}</div>
-                    </td>
-                    <td align="center" valign="middle" style="padding: 6px; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1;">
-                        <div style="position: relative; top: -1.5px; font-weight: 900; font-family: monospace; color: #000000; font-size: 11.5px; white-space: nowrap;">${finalTotal > 0 ? `S/&nbsp;${finalTotal.toFixed(2)}` : ''}</div>
-                    </td>
-                `;
-                state.currentTbody.appendChild(tr);
+                // Modo Precio Final (Paquete / Combo)
+                const wCant = contentW * 0.10;
+                const wDesc = contentW * 0.70;
+                const wImp = contentW * 0.20;
+                const totals = window.getCalculatedTotals();
+
+                ctx.font = '700 11px "Exo 2", sans-serif';
+                const genDesc = document.getElementById('f_generalDesc').value || 'EQUIPO TECNOLÓGICO';
+                const descLines = wrapCanvasText(ctx, genDesc, wDesc - 24);
+                const lineH = 16;
+                const rowH = Math.max(42, descLines.length * lineH + 18);
+
+                drawRoundedRect(ctx, contentX, curY, contentW, rowH, 8);
+                ctx.fillStyle = `rgba(255, 255, 255, ${cfg.glassOpacity})`;
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                const rowMidY = curY + rowH / 2;
+
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#1d4ed8';
+                ctx.font = '800 12px "JetBrains Mono", monospace';
+                ctx.fillText('1', contentX + wCant / 2, rowMidY);
+
+                ctx.textAlign = 'left';
+                ctx.fillStyle = '#0f172a';
+                ctx.font = '700 11px "Exo 2", sans-serif';
+                const totalTextH = descLines.length * lineH;
+                let textY = curY + (rowH - totalTextH) / 2 + (lineH / 2);
+                descLines.forEach(line => {
+                    ctx.fillText(line, contentX + wCant + 12, textY);
+                    textY += lineH;
+                });
+
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#020617';
+                ctx.font = '800 12px "JetBrains Mono", monospace';
+                ctx.fillText(`S/ ${totals.venta.toFixed(2)}`, contentX + wCant + wDesc + wImp / 2, rowMidY);
+
+                curY += rowH;
             }
 
-            // TOTALES E IGV
+            // 4. DIBUJAR PIE DE PÁGINA (CUENTAS, YAPE, CONDICIONES Y TOTALES GLASS-TECH)
+            if (curY + footerReservedH > maxBottomY) {
+                currentPageObj = createHiDPICanvasPage(cfg);
+                pages.push(currentPageObj);
+                ctx = currentPageObj.ctx;
+                curY = cfg.topPx + 10;
+            } else {
+                curY += 16;
+            }
+
             const totals = window.getCalculatedTotals();
-            const applyIgv = document.getElementById('cfg_igv') ? document.getElementById('cfg_igv').checked : false;
-            
             let subtotalStr, igvStr, totalStr, igvLabel;
             if (applyIgv) {
-                const subtotal = totals.venta / 1.18;
-                const igv = totals.venta - subtotal;
-                subtotalStr = subtotal.toFixed(2);
+                const sub = totals.venta / 1.18;
+                const igv = totals.venta - sub;
+                subtotalStr = sub.toFixed(2);
                 igvStr = igv.toFixed(2);
                 totalStr = totals.venta.toFixed(2);
-                igvLabel = "I.G.V. (18%)";
+                igvLabel = 'I.G.V. (18%)';
             } else {
                 subtotalStr = totals.venta.toFixed(2);
-                igvStr = "0.00";
+                igvStr = '0.00';
                 totalStr = totals.venta.toFixed(2);
-                igvLabel = "EXONERADO (0%)";
+                igvLabel = 'EXONERADO (0%)';
             }
 
-            const notas = document.getElementById('f_obsNotas').value.trim();
-            
-            const footerEl = document.createElement('div');
-            footerEl.className = "mt-4 avoid-page-break";
-            footerEl.innerHTML = `
-                <table width="100%" cellpadding="0" cellspacing="0" style="font-family: 'Inter', sans-serif;">
-                    <tr>
-                        <!-- Columna Izquierda: Datos y Yape -->
-                        <td width="65%" valign="top">
-                            <table width="100%" cellpadding="0" cellspacing="0">
-                                <tr>
-                                    <td width="65%" valign="top">
-                                        <h4 style="font-size: 11px; font-weight: 900; color: #000000; text-transform: uppercase; margin: 0 0 4px 0; letter-spacing: 0.5px;">Cuentas Bancarias</h4>
-                                        <div style="font-size: 10px; font-weight: 800; color: #000000; line-height: 1.3;">
-                                            <p style="margin:0;">Titular: José Leonaldo Vizcarra Ramirez</p>
-                                            <p style="margin:0;">BCP Soles: 36511177470020</p>
-                                            <p style="margin:0;">CCI: 00236511117747002051</p>
-                                        </div>
-                                        <div style="margin-top: 10px; font-size: 10px; font-weight: 800; color: #000000; line-height: 1.3;">
-                                            <p style="margin:0;">Garantía: ${document.getElementById('f_obsGarantia').value || '-'}</p>
-                                            <p style="margin:0;">Entrega: ${document.getElementById('f_obsEntrega').value || '-'}</p>
-                                            <p style="margin:0;">Validez: ${document.getElementById('f_obsValidez').value || '-'}</p>
-                                            ${notas ? `<p style="margin:4px 0 0 0; color: #1d4ed8;">Nota: ${notas}</p>` : ''}
-                                        </div>
-                                    </td>
-                                    <td width="35%" align="center" valign="middle">
-                                        <div style="background-color: #742284; color: #ffffff; font-size: 10px; font-weight: 900; padding: 4px 16px; border-radius: 12px; display: inline-block; margin-bottom: 6px;">YAPE</div>
-                                        <div style="font-size: 14px; font-weight: 900; font-family: monospace; color: #000000;">${document.getElementById('f_yape').value || '902 532 240'}</div>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                        
-                        <!-- Columna Derecha: Totales -->
-                        <td width="35%" valign="bottom" align="right">
-                            <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; background: #ffffff;">
-                                <tr>
-                                    <td width="50%" align="left" valign="middle" style="padding: 8px 12px; font-size: 10px; font-weight: 900; color: #475569; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1;">
-                                        <div style="position: relative; top: -1px;">SUBTOTAL</div>
-                                    </td>
-                                    <td width="50%" align="right" valign="middle" style="padding: 8px 12px; font-size: 11px; font-weight: 900; font-family: monospace; color: #000000; border-bottom: 1px solid #cbd5e1; white-space: nowrap;">
-                                        <div style="position: relative; top: -1px;">S/&nbsp;${subtotalStr}</div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td align="left" valign="middle" style="padding: 8px 12px; font-size: 10px; font-weight: 900; color: #475569; border-bottom: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1;">
-                                        <div style="position: relative; top: -1px;">${igvLabel}</div>
-                                    </td>
-                                    <td align="right" valign="middle" style="padding: 8px 12px; font-size: 11px; font-weight: 900; font-family: monospace; color: #000000; border-bottom: 1px solid #cbd5e1; white-space: nowrap;">
-                                        <div style="position: relative; top: -1px;">S/&nbsp;${igvStr}</div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td align="left" valign="middle" style="background-color: #1e40af; padding: 10px 12px; font-size: 11px; font-weight: 900; color: #ffffff; border-right: 1px solid #1e3a8a;">
-                                        <div style="position: relative; top: -1px;">TOTAL</div>
-                                    </td>
-                                    <td align="right" valign="middle" style="background-color: #1e40af; padding: 10px 12px; font-size: 14px; font-weight: 900; font-family: monospace; color: #ffffff; white-space: nowrap;">
-                                        <div style="position: relative; top: -1px;">S/&nbsp;${totalStr}</div>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-                </table>
-                <div style="text-align: center; margin-top: 20px; font-size: 11px; font-weight: 900; color: #3b82f6; font-style: italic; letter-spacing: 0.5px;">
-                    ¡Gracias por su compra y confianza!
-                </div>
-            `;
-            state.contentArea.appendChild(footerEl);
+            const leftPanelW = contentW * 0.62;
+            const totalsW = contentW * 0.35;
+            const totalsX = contentX + contentW - totalsW;
+            const cardH = 104;
 
-            if (state.contentArea.offsetHeight > cfg.maxContentHeight) {
-                state.contentArea.removeChild(footerEl);
-                startNewPage();
-                state.contentArea.appendChild(footerEl);
+            // Panel Cristal Izquierdo (Cuentas, Condiciones y Yape)
+            ctx.save();
+            ctx.shadowColor = 'rgba(15, 23, 42, 0.06)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetY = 3;
+            drawRoundedRect(ctx, contentX, curY, leftPanelW, cardH, 9);
+            ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(0.92, cfg.glassOpacity + 0.08)})`;
+            ctx.fill();
+            ctx.restore();
+
+            drawRoundedRect(ctx, contentX, curY, leftPanelW, cardH, 9);
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Textos de Cuentas y Condiciones en Negro Fuerte y Nítido
+            let fY = curY + 14;
+            const infoPadX = contentX + 12;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+
+            ctx.fillStyle = '#1e3a8a';
+            ctx.font = '800 9.5px "Orbitron", sans-serif';
+            ctx.fillText('CUENTAS BANCARIAS', infoPadX, fY);
+            fY += 13;
+
+            ctx.fillStyle = '#020617';
+            ctx.font = '700 9.5px "Exo 2", sans-serif';
+            ctx.fillText('TITULAR: JOSÉ LEONALDO VIZCARRA RAMIREZ', infoPadX, fY);
+            fY += 12.5;
+            ctx.fillText('BCP SOLES: 36511177470020   |   CCI: 00236511117747002051', infoPadX, fY);
+            fY += 16;
+
+            const garantia = document.getElementById('f_obsGarantia').value || '-';
+            const entrega = document.getElementById('f_obsEntrega').value || '-';
+            const validez = document.getElementById('f_obsValidez').value || '-';
+            const notas = (document.getElementById('f_obsNotas').value || '').trim();
+
+            ctx.fillStyle = '#020617';
+            ctx.font = '800 9.2px "Exo 2", sans-serif';
+            ctx.fillText(`GARANTÍA: ${garantia}`, infoPadX, fY);
+            fY += 12.5;
+            ctx.fillText(`ENTREGA: ${entrega}`, infoPadX, fY);
+            fY += 12.5;
+            ctx.fillText(`VALIDEZ: ${validez}`, infoPadX, fY);
+            if (notas) {
+                fY += 12.5;
+                ctx.fillStyle = '#1d4ed8';
+                ctx.fillText(`NOTA: ${notas}`, infoPadX, fY);
             }
 
-            // 4. IMÁGENES EXTRA
-            if (window.proformaImages && window.proformaImages.length > 0) {
-                let imgCount = 0;
-                let gridContainer = null;
-                window.proformaImages.forEach((imgSrc) => {
-                    if (imgCount % 2 === 0) {
-                        startNewPage();
-                        state.contentArea.innerHTML = `
-                            <div style="margin-bottom: 20px; border-bottom: 1px solid #cbd5e1; padding-bottom: 10px;">
-                                <table width="100%">
-                                    <tr>
-                                        <td width="20%"><img src="${window.logoBase64}" crossorigin="anonymous" style="height: 50px;"></td>
-                                        <td width="60%" align="center"><h2 style="margin:0; font-size: 16px; font-weight: 900; color: #1e1b4b;">ANEXOS - IMÁGENES</h2></td>
-                                        <td width="20%" align="right"><div style="font-size: 10px; font-weight: 900; color: #475569;">Ref: <span style="color: #3b82f6;">PF-${profNum}</span></div></td>
-                                    </tr>
-                                </table>
-                            </div>
-                        `;
-                        gridContainer = document.createElement('div');
-                        gridContainer.className = 'flex-1 grid grid-rows-2 gap-6 pb-4 min-h-0';
-                        state.contentArea.appendChild(gridContainer);
+            // Divisor vertical suave antes de Yape
+            const yapeDivX = contentX + leftPanelW - 122;
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
+            ctx.beginPath();
+            ctx.moveTo(yapeDivX, curY + 12);
+            ctx.lineTo(yapeDivX, curY + cardH - 12);
+            ctx.stroke();
+
+            // Insignia YAPE Perfectamente Centrada con Degradado
+            const yapeCenterX = yapeDivX + (contentX + leftPanelW - yapeDivX) / 2;
+            const yapeBoxW = 78;
+            const yapeBoxH = 24;
+            const yapeBoxX = yapeCenterX - yapeBoxW / 2;
+            const yapeBoxY = curY + 26;
+
+            const yGrad = ctx.createLinearGradient(yapeBoxX, yapeBoxY, yapeBoxX + yapeBoxW, yapeBoxY + yapeBoxH);
+            yGrad.addColorStop(0, '#581c87');
+            yGrad.addColorStop(1, '#9333ea');
+            drawRoundedRect(ctx, yapeBoxX, yapeBoxY, yapeBoxW, yapeBoxH, 12);
+            ctx.fillStyle = yGrad;
+            ctx.fill();
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '900 10.5px "Orbitron", sans-serif';
+            ctx.fillText('YAPE', yapeCenterX, yapeBoxY + yapeBoxH / 2);
+
+            const yapeNum = document.getElementById('f_yape').value || '902 532 240';
+            ctx.fillStyle = '#020617';
+            ctx.font = '800 13px "JetBrains Mono", monospace';
+            ctx.fillText(yapeNum, yapeCenterX, yapeBoxY + yapeBoxH + 18);
+
+            // C. Tarjeta de Totales Derecha (Estilo Glass-Tech Sin Celdas Excel)
+            const row1H = 31;
+            const row2H = 31;
+            const row3H = 42;
+
+            ctx.save();
+            ctx.shadowColor = 'rgba(15, 23, 42, 0.08)';
+            ctx.shadowBlur = 12;
+            ctx.shadowOffsetY = 3;
+            drawRoundedRect(ctx, totalsX, curY, totalsW, cardH, 9);
+            ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(0.95, cfg.glassOpacity + 0.15)})`;
+            ctx.fill();
+            ctx.restore();
+
+            drawRoundedRect(ctx, totalsX, curY, totalsW, cardH, 9);
+            ctx.strokeStyle = 'rgba(59, 130, 246, 0.35)';
+            ctx.lineWidth = 1.1;
+            ctx.stroke();
+
+            // Línea divisoria horizontal sutil entre Subtotal e IGV
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(totalsX + 12, curY + row1H);
+            ctx.lineTo(totalsX + totalsW - 12, curY + row1H);
+            ctx.stroke();
+
+            // Fila 1: SUBTOTAL
+            const r1MidY = curY + row1H / 2;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#475569';
+            ctx.font = '800 9.5px "Orbitron", sans-serif';
+            ctx.fillText('SUBTOTAL', totalsX + 14, r1MidY);
+
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '700 11.5px "JetBrains Mono", monospace';
+            ctx.fillText(`S/ ${subtotalStr}`, totalsX + totalsW - 14, r1MidY);
+
+            // Fila 2: IGV / EXONERADO
+            const r2MidY = curY + row1H + row2H / 2;
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#475569';
+            ctx.font = '800 9.5px "Orbitron", sans-serif';
+            ctx.fillText(igvLabel, totalsX + 14, r2MidY);
+
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '700 11.5px "JetBrains Mono", monospace';
+            ctx.fillText(`S/ ${igvStr}`, totalsX + totalsW - 14, r2MidY);
+
+            // Fila 3: TOTAL (Banda Tecnológica con Degradado Azul-Cian)
+            const r3Y = curY + row1H + row2H;
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(totalsX, r3Y);
+            ctx.lineTo(totalsX + totalsW, r3Y);
+            ctx.lineTo(totalsX + totalsW, r3Y + row3H - 9);
+            ctx.quadraticCurveTo(totalsX + totalsW, r3Y + row3H, totalsX + totalsW - 9, r3Y + row3H);
+            ctx.lineTo(totalsX + 9, r3Y + row3H);
+            ctx.quadraticCurveTo(totalsX, r3Y + row3H, totalsX, r3Y + row3H - 9);
+            ctx.closePath();
+
+            const totGrad = ctx.createLinearGradient(totalsX, r3Y, totalsX + totalsW, r3Y);
+            totGrad.addColorStop(0, '#090d16');
+            totGrad.addColorStop(0.5, '#1e3a8a');
+            totGrad.addColorStop(1, '#0284c7');
+            ctx.fillStyle = totGrad;
+            ctx.fill();
+            ctx.restore();
+
+            const r3MidY = r3Y + row3H / 2;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = '900 11px "Orbitron", sans-serif';
+            ctx.fillText('TOTAL', totalsX + 14, r3MidY);
+
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '800 15px "JetBrains Mono", monospace';
+            ctx.fillText(`S/ ${totalStr}`, totalsX + totalsW - 14, r3MidY);
+
+            // Frase de agradecimiento
+            const thanksY = curY + cardH + 22;
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#1d4ed8';
+            ctx.font = 'italic 700 11.5px "Exo 2", sans-serif';
+            ctx.fillText('¡Gracias por su compra y preferencia tecnológica!', PAGE_W / 2, thanksY);
+
+            // 5. PÁGINAS DE IMÁGENES / ANEXOS (SI SE SUBIERON IMÁGENES)
+            if (window.proformaImageObjects && window.proformaImageObjects.length > 0) {
+                for (let i = 0; i < window.proformaImageObjects.length; i += 2) {
+                    const imgPage = createHiDPICanvasPage(cfg);
+                    pages.push(imgPage);
+                    const ic = imgPage.ctx;
+                    let iy = cfg.topPx;
+
+                    if (window.logoImgObj) {
+                        const r = Math.min(140 / window.logoImgObj.width, 50 / window.logoImgObj.height);
+                        ic.drawImage(window.logoImgObj, contentX, iy, window.logoImgObj.width * r, window.logoImgObj.height * r);
                     }
-                    const imgBox = document.createElement('div');
-                    imgBox.className = 'w-full h-full flex items-center justify-center p-3 bg-slate-50 border border-slate-200 rounded-2xl shadow-inner overflow-hidden min-h-0';
-                    imgBox.innerHTML = `<img src="${imgSrc}" class="max-w-full max-h-full object-contain rounded-lg shadow-sm">`;
-                    gridContainer.appendChild(imgBox);
-                    imgCount++;
-                });
+                    ic.textAlign = 'center';
+                    ic.textBaseline = 'middle';
+                    ic.fillStyle = '#0f172a';
+                    ic.font = '900 15px "Orbitron", sans-serif';
+                    ic.fillText('ANEXOS - EVIDENCIAS E IMÁGENES', PAGE_W / 2, iy + 25);
+
+                    ic.textAlign = 'right';
+                    ic.fillStyle = '#1d4ed8';
+                    ic.font = '800 11px "JetBrains Mono", monospace';
+                    ic.fillText(`REF: PF-${profNum}`, contentX + contentW, iy + 25);
+
+                    iy += 60;
+                    const availH = maxBottomY - iy;
+                    const slotH = (availH - 20) / 2;
+
+                    for (let j = 0; j < 2; j++) {
+                        const imgObj = window.proformaImageObjects[i + j];
+                        if (!imgObj) break;
+                        const boxY = iy + j * (slotH + 20);
+                        drawRoundedRect(ic, contentX, boxY, contentW, slotH, 10);
+                        ic.fillStyle = `rgba(248, 250, 252, ${cfg.glassOpacity})`;
+                        ic.fill();
+                        ic.strokeStyle = '#cbd5e1';
+                        ic.lineWidth = 1;
+                        ic.stroke();
+
+                        const pad = 14;
+                        const maxW = contentW - pad * 2;
+                        const maxH = slotH - pad * 2;
+                        const ratio = Math.min(maxW / imgObj.width, maxH / imgObj.height);
+                        const dw = imgObj.width * ratio;
+                        const dh = imgObj.height * ratio;
+                        ic.drawImage(imgObj, contentX + (contentW - dw) / 2, boxY + (slotH - dh) / 2, dw, dh);
+                    }
+                }
             }
+
+            // Agregar todas las hojas al contenedor
+            pages.forEach(p => {
+                wrapper.appendChild(p.card);
+                window.renderedCanvases.push(p.canvas);
+            });
 
             const badge = document.getElementById('pageCountBadge');
-            if (badge) badge.innerText = `${state.pageCount} ${state.pageCount === 1 ? 'Hoja A4' : 'Hojas A4'}`;
-            
-            if (scaler) scaler.style.transform = prevTransform;
-            window.adjustPreviewScale(); 
+            if (badge) badge.innerText = `${pages.length} ${pages.length === 1 ? 'Hoja A4' : 'Hojas A4'}`;
+
+            window.adjustPreviewScale();
             lucide.createIcons();
         };
 
         window.adjustPreviewScale = () => {
             const wrapper = document.getElementById('preview-wrapper-section');
             const scaler = document.getElementById('preview-scaler');
-            const pdfWrapper = document.getElementById('proforma-pdf-wrapper');
-            if (wrapper && scaler && pdfWrapper) {
+            if (wrapper && scaler) {
                 const availableWidth = wrapper.clientWidth - 40;
-                const a4Width = 794; 
-                let scale = availableWidth / a4Width;
+                let scale = availableWidth / PAGE_W;
                 if (scale > 1) scale = 1;
-                
                 scaler.style.transform = `scale(${scale})`;
-                
-                const pages = pdfWrapper.querySelectorAll('.a4-page').length || 1;
-                const totalHeight = (pages * 1123) + ((pages - 1) * 32) + 48;
+                const pagesCount = window.renderedCanvases.length || 1;
+                const totalHeight = (pagesCount * PAGE_H) + ((pagesCount - 1) * 32) + 48;
                 scaler.style.height = `${totalHeight * scale}px`;
             }
         };
 
         window.addEventListener('resize', window.adjustPreviewScale);
 
+        // =========================================================================
+        // DESCARGA DE PDF DIRECTA DESDE EL LIENZO (100% IDÉNTICA A LA VISTA PREVIA)
+        // =========================================================================
+        window.generatePDF = async (btn) => {
+            window.updatePreview();
+            if (!window.renderedCanvases || window.renderedCanvases.length === 0) return;
+
+            const originalText = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Generando...';
+                btn.disabled = true;
+                lucide.createIcons();
+            }
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+
+                window.renderedCanvases.forEach((canvas, idx) => {
+                    if (idx > 0) pdf.addPage('a4', 'portrait');
+                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+                    pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+                });
+
+                const profNum = (document.getElementById('f_profNumber').value || '0000').replace(/^PF-/i, '').trim();
+                pdf.save(`Proforma_KGB_PF-${profNum}.pdf`);
+                window.showToast("PDF generado con éxito.");
+            } catch (err) {
+                console.error("Error PDF:", err);
+                window.showToast("Hubo un error al exportar el PDF.");
+            } finally {
+                if (btn) {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    lucide.createIcons();
+                }
+            }
+        };
+
+        // =========================================================================
+        // GESTIÓN DE CLIENTES, BÚSQUEDA DNI/RUC Y SINCRONIZACIÓN CON GOOGLE SHEETS
+        // =========================================================================
         window.localClientsDB = [];
         window.updateClientDatalists = () => {
             const nameSet = new Set(); const docSet = new Set(); const phoneSet = new Set();
             window.localClientsDB = [];
             window.proformasList.forEach(p => {
-                const name = (p.clientName || '').trim().toUpperCase(); const doc = (p.clientDoc || '').trim().toUpperCase();
-                const phone = (p.clientPhone || '').trim().toUpperCase(); const address = (p.clientAddress || '').trim().toUpperCase();
+                const name = (p.clientName || '').trim().toUpperCase();
+                const doc = (p.clientDoc || '').trim().toUpperCase();
+                const phone = (p.clientPhone || '').trim().toUpperCase();
+                const address = (p.clientAddress || '').trim().toUpperCase();
                 if (name && name !== 'SIN NOMBRE') {
                     if (!nameSet.has(name) || !docSet.has(doc)) {
                         window.localClientsDB.push({ name, doc, phone, address });
@@ -938,8 +1521,10 @@
         };
 
         window.handleClientAutoFill = (sourceField) => {
-            const nameInput = document.getElementById('f_clientName'); const docInput = document.getElementById('f_clientDoc');
-            const phoneInput = document.getElementById('f_clientPhone'); const addressInput = document.getElementById('f_clientAddress');
+            const nameInput = document.getElementById('f_clientName');
+            const docInput = document.getElementById('f_clientDoc');
+            const phoneInput = document.getElementById('f_clientPhone');
+            const addressInput = document.getElementById('f_clientAddress');
             let match = null;
 
             if (sourceField === 'name' && nameInput.value) match = window.localClientsDB.find(c => c.name === nameInput.value.trim().toUpperCase());
@@ -960,52 +1545,41 @@
             const doc = docInput.value.trim();
             const btn = document.getElementById('btnSearchDoc');
             
-            if (doc.length !== 8 && doc.length !== 11) { alert("Ingrese DNI (8 dígitos) o RUC (11 dígitos)."); return; }
+            if (doc.length !== 8 && doc.length !== 11) {
+                window.showToast("Ingrese un DNI (8 dígitos) o RUC (11 dígitos).");
+                return;
+            }
 
             const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-white"></i>'; btn.disabled = true; lucide.createIcons();
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin text-white"></i>';
+            btn.disabled = true;
+            lucide.createIcons();
 
             try {
                 let apiUrl = doc.length === 8 ? `https://api.apis.net.pe/v1/dni?numero=${doc}` : `https://api.apis.net.pe/v1/ruc?numero=${doc}`;
                 const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
                 const response = await fetch(proxyUrl);
-                
                 if (!response.ok) throw new Error("Fallo Proxy");
                 const proxyData = await response.json();
-                if (!proxyData.contents) throw new Error("Sin datos");
-                
                 const data = JSON.parse(proxyData.contents);
-                if (data.error || (!data.nombre && !data.razonSocial)) throw new Error("API Limit");
+                if (data.error || (!data.nombre && !data.razonSocial)) throw new Error("Sin datos");
 
                 const nameInput = document.getElementById('f_clientName');
                 const addressInput = document.getElementById('f_clientAddress');
-                
                 if (doc.length === 8) {
                     nameInput.value = (data.nombre || `${data.nombres} ${data.apellidoPaterno} ${data.apellidoMaterno}`).trim().toUpperCase();
-                    if(data.direccion) addressInput.value = data.direccion.toUpperCase();
+                    if (data.direccion) addressInput.value = data.direccion.toUpperCase();
                 } else {
                     nameInput.value = (data.nombre || data.razonSocial || '').trim().toUpperCase();
                     addressInput.value = (data.direccion || '').trim().toUpperCase();
                 }
-                
                 window.updatePreview();
                 btn.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-emerald-300"></i>';
             } catch (error) {
-                console.warn("Usando datos Mock porque la API falló.");
-                const nameInput = document.getElementById('f_clientName');
-                const addressInput = document.getElementById('f_clientAddress');
-                
-                await new Promise(r => setTimeout(r, 800)); 
-                if (doc.length === 8) {
-                    nameInput.value = "JUAN CARLOS PEREZ GOMEZ"; addressInput.value = "AV. LOS INCAS 456, LIMA";
-                } else {
-                    nameInput.value = "TECNOLOGIA Y SISTEMAS S.A.C."; addressInput.value = "JR. LAS MALVINAS 1020, LIMA";
-                }
-                window.updatePreview();
-                btn.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-emerald-300"></i>';
+                window.showToast("No se encontró en RENIEC/SUNAT, puedes escribir el nombre manualmente.");
             } finally {
                 lucide.createIcons();
-                setTimeout(() => { btn.innerHTML = originalHtml; btn.disabled = false; lucide.createIcons(); }, 2000);
+                setTimeout(() => { btn.innerHTML = originalHtml; btn.disabled = false; lucide.createIcons(); }, 1800);
             }
         };
 
@@ -1022,22 +1596,29 @@
                 inputProf.value = String(data.nextProfNum || 1).padStart(4, '0');
                 if (data.proformas) {
                     window.proformasList = data.proformas.sort((a, b) => new Date(b.date) - new Date(a.date));
-                    window.renderHistoryTable(); window.updateClientDatalists(); window.renderContractTable();
+                    window.renderHistoryTable();
+                    window.updateClientDatalists();
+                    window.renderContractTable();
                 }
                 if (data.products && data.products.length > 0) {
-                    const uniqueProducts = []; const descSet = new Set();
+                    const uniqueProducts = [];
+                    const descSet = new Set();
                     data.products.forEach((p, i) => {
                         const safeDesc = (p.desc || '').toUpperCase();
-                        if(!descSet.has(safeDesc)) {
-                            descSet.add(safeDesc); uniqueProducts.push({ id: p.id || ('gs_' + i), desc: safeDesc, cost: p.cost || 0, price: p.price || 0 });
+                        if (!descSet.has(safeDesc)) {
+                            descSet.add(safeDesc);
+                            uniqueProducts.push({ id: p.id || ('gs_' + i), desc: safeDesc, cost: p.cost || 0, price: p.price || 0 });
                         }
                     });
                     window.productCatalog = uniqueProducts;
                 }
-                window.renderCatalogTable(); window.updateDatalist();
-                window.setCloudStatus('success'); window.updatePreview();
+                window.renderCatalogTable();
+                window.updateDatalist();
+                window.setCloudStatus('success');
+                window.updatePreview();
             } catch (error) {
-                console.error("Error Sheet:", error); window.setCloudStatus('error'); 
+                console.error("Error Sheet:", error);
+                window.setCloudStatus('error'); 
             }
         };
 
@@ -1049,7 +1630,6 @@
             document.getElementById('f_date').value = `${yyyy}-${mm}-${dd}`;
             window.fetchGoogleSheetsData();
             window.renderItems();
-            setTimeout(window.adjustPreviewScale, 100);
         };
 
         window.setCloudStatus = (s) => {
@@ -1064,47 +1644,89 @@
             if (btn.disabled) return;
             const oTxt = btn.innerHTML;
             try {
-                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Guardando...'; btn.disabled = true; lucide.createIcons();
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Guardando...';
+                btn.disabled = true;
+                lucide.createIcons();
+
                 const totals = window.getCalculatedTotals();
+                const qrEl = document.getElementById('f_yape_qr_url');
                 const dataObj = {
                     id: window.currentEditId || ("PF_" + new Date().getTime()),
-                    profNumber: document.getElementById('f_profNumber').value, date: document.getElementById('f_date').value,
-                    clientName: document.getElementById('f_clientName').value || 'Sin Nombre', clientDoc: document.getElementById('f_clientDoc').value || '', clientPhone: document.getElementById('f_clientPhone').value || '', clientAddress: document.getElementById('f_clientAddress').value || '',
-                    cost: totals.cost, total: totals.venta, profit: totals.ganancia, status: document.getElementById('f_status').value, viewMode: window.viewMode, generalDesc: document.getElementById('f_generalDesc').value || '',
-                    manualCost: document.getElementById('f_manualCost').value || '', manualTotal: document.getElementById('f_manualTotal').value || '',
-                    yape: document.getElementById('f_yape').value || '902 532 240', yapeQrUrl: document.getElementById('f_yape_qr_url').value || '',
-                    obsGarantia: document.getElementById('f_obsGarantia').value || '', obsEntrega: document.getElementById('f_obsEntrega').value || '', obsValidez: document.getElementById('f_obsValidez').value || '', obsNotas: document.getElementById('f_obsNotas').value || '',
+                    profNumber: document.getElementById('f_profNumber').value,
+                    date: document.getElementById('f_date').value,
+                    clientName: document.getElementById('f_clientName').value || 'Sin Nombre',
+                    clientDoc: document.getElementById('f_clientDoc').value || '',
+                    clientPhone: document.getElementById('f_clientPhone').value || '',
+                    clientAddress: document.getElementById('f_clientAddress').value || '',
+                    cost: totals.cost,
+                    total: totals.venta,
+                    profit: totals.ganancia,
+                    status: document.getElementById('f_status').value,
+                    viewMode: window.viewMode,
+                    generalDesc: document.getElementById('f_generalDesc').value || '',
+                    manualCost: document.getElementById('f_manualCost').value || '',
+                    manualTotal: document.getElementById('f_manualTotal').value || '',
+                    yape: document.getElementById('f_yape').value || '902 532 240',
+                    yapeQrUrl: qrEl ? qrEl.value : '',
+                    obsGarantia: document.getElementById('f_obsGarantia').value || '',
+                    obsEntrega: document.getElementById('f_obsEntrega').value || '',
+                    obsValidez: document.getElementById('f_obsValidez').value || '',
+                    obsNotas: document.getElementById('f_obsNotas').value || '',
                     items: window.items.map(i => ({ qty: i.qty, desc: (i.desc || '').toUpperCase(), cost: i.cost || 0, price: i.price || 0 }))
                 };
                 window.setCloudStatus('syncing');
                 const response = await fetch(window.WEBHOOK_URL, { method: 'POST', body: JSON.stringify({ action: "save_proforma", data: dataObj }) });
-                if(!response.ok) throw new Error("Fallo GSheets");
+                if (!response.ok) throw new Error("Fallo GSheets");
 
-                window.setCloudStatus('success'); window.currentEditId = dataObj.id;
+                window.setCloudStatus('success');
+                window.currentEditId = dataObj.id;
                 const idx = window.proformasList.findIndex(p => p.id === dataObj.id);
                 if (idx > -1) window.proformasList[idx] = dataObj; else window.proformasList.unshift(dataObj);
-                window.renderHistoryTable(); window.updateClientDatalists(); window.renderContractTable();
+                window.renderHistoryTable();
+                window.updateClientDatalists();
+                window.renderContractTable();
                 btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> ¡Guardado!';
-            } catch (e) { alert("Error al guardar."); window.setCloudStatus('error'); btn.innerHTML = '<i data-lucide="x" class="w-4 h-4"></i> Error'; } finally { setTimeout(() => { btn.innerHTML = oTxt; btn.disabled = false; lucide.createIcons(); }, 2500); }
+                window.showToast("Proforma guardada en Google Sheets.");
+            } catch (e) {
+                window.showToast("Error al guardar en la nube.");
+                window.setCloudStatus('error');
+                btn.innerHTML = '<i data-lucide="x" class="w-4 h-4"></i> Error';
+            } finally {
+                setTimeout(() => { btn.innerHTML = oTxt; btn.disabled = false; lucide.createIcons(); }, 2200);
+            }
         };
 
         window.clearForm = () => {
-            if(confirm('¿Crear proforma en blanco?')) {
-                document.querySelectorAll('#f_clientName, #f_clientDoc, #f_clientPhone, #f_clientAddress, #f_obsNotas, #f_generalDesc, #f_manualTotal, #f_manualCost, #f_yape_qr_url').forEach(el => el.value = '');
-                document.getElementById('f_yape').value = '902 532 240'; document.getElementById('f_status').value = 'Solo Proforma';
-                window.initDefaults(); window.currentEditId = null; window.items = [{ id: 1, qty: 1, desc: '', cost: 0, price: 0 }];
-                let maxN = 0; window.proformasList.forEach(p => { const m = String(p.profNumber).match(/(\d+)$/); if(m && parseInt(m[1])>maxN) maxN=parseInt(m[1]); });
-                document.getElementById('f_profNumber').value = String(maxN+1).padStart(4, '0');
-                window.setMode('detalle'); window.renderItems();
-            }
+            window.askConfirm('Nueva Proforma', '¿Deseas limpiar el formulario actual para crear una nueva proforma?', () => {
+                document.querySelectorAll('#f_clientName, #f_clientDoc, #f_clientPhone, #f_clientAddress, #f_obsNotas, #f_generalDesc, #f_manualTotal, #f_manualCost').forEach(el => el.value = '');
+                document.getElementById('f_yape').value = '902 532 240';
+                document.getElementById('f_status').value = 'Solo Proforma';
+                document.getElementById('cfg_igv').checked = false;
+                window.currentEditId = null;
+                window.proformaImages = [];
+                window.proformaImageObjects = [];
+                window.renderProformaImagesUI();
+                window.items = [{ id: 1, qty: 1, desc: '', cost: 0, price: 0 }];
+                let maxN = 0;
+                window.proformasList.forEach(p => {
+                    const m = String(p.profNumber).match(/(\d+)$/);
+                    if (m && parseInt(m[1]) > maxN) maxN = parseInt(m[1]);
+                });
+                document.getElementById('f_profNumber').value = String(maxN + 1).padStart(4, '0');
+                window.setMode('detalle');
+                window.renderItems();
+            });
         };
 
         window.sendWhatsApp = (btn) => {
             const p = document.getElementById('f_clientPhone').value.replace(/\D/g, '');
-            if(!p) return alert("Ingresa un número de celular.");
-            const num = (p.length === 9 && p.startsWith('9')) ? '51'+p : p;
+            if (!p) {
+                window.showToast("Ingresa el número de celular del cliente.");
+                return;
+            }
+            const num = (p.length === 9 && p.startsWith('9')) ? '51' + p : p;
             const cName = document.getElementById('f_clientName').value || 'Estimado Cliente';
-            const pf = document.getElementById('f_profNumber').value;
+            const pf = (document.getElementById('f_profNumber').value || '0000').replace(/^PF-/i, '').trim();
             const t = window.getCalculatedTotals().venta.toFixed(2);
             
             const mensaje = `Estimado(a) *${cName}*, reciba un cordial saludo de parte del equipo de *KGB Technology*. 🏢👨‍💻\n\nConforme a su requerimiento, le hacemos llegar adjunto en formato PDF nuestra cotización oficial *(N° PF-${pf})* por una inversión de *S/ ${t}*.\n\nQuedamos a su entera disposición para absolver cualquier consulta técnica o comercial. Agradecemos de antemano la confianza en nuestro trabajo. 🤝`;
@@ -1113,62 +1735,20 @@
             window.generatePDF(btn);
         };
 
-        window.generatePDF = async (btn) => {
-            const wrapper = document.getElementById('proforma-pdf-wrapper');
-            const scaler = document.getElementById('preview-scaler');
-            const pages = wrapper.querySelectorAll('.a4-page');
-            if (!pages.length) return;
-
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Generando...';
-            btn.disabled = true; lucide.createIcons();
-
-            const prevTransform = scaler.style.transform;
-            scaler.style.transform = 'scale(1)';
-            wrapper.classList.add('exporting-pdf');
-
-            try {
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-
-                for (let i = 0; i < pages.length; i++) {
-                    const pageEl = pages[i];
-                    const prevShadow = pageEl.style.boxShadow;
-                    pageEl.style.boxShadow = 'none';
-
-                    const canvas = await html2canvas(pageEl, {
-                        scale: 2, useCORS: true, allowTaint: true,
-                        backgroundColor: '#ffffff',
-                        width: 794, height: 1123,
-                        windowWidth: 794, windowHeight: 1123,
-                        scrollY: 0, scrollX: 0, logging: false
-                    });
-
-                    pageEl.style.boxShadow = prevShadow;
-                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
-                    
-                    if (i > 0) pdf.addPage('a4', 'portrait');
-                    pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
-                }
-
-                pdf.save(`Proforma_KGB_${document.getElementById('f_profNumber').value || '0000'}.pdf`);
-            } catch (err) {
-                console.error("Error PDF:", err);
-                alert("Hubo un error al generar el PDF. Revisa la consola.");
-            } finally {
-                wrapper.classList.remove('exporting-pdf');
-                scaler.style.transform = prevTransform;
-                btn.innerHTML = originalText;
-                btn.disabled = false; lucide.createIcons();
-                window.adjustPreviewScale();
-            }
-        };
-
         window.setMode = (mode) => {
             window.viewMode = mode;
-            const btnDetalle = document.getElementById('btnModeDetalle'); const btnFinal = document.getElementById('btnModeFinal'); const descContainer = document.getElementById('generalDescContainer');
-            if (mode === 'detalle') { btnDetalle.className = "px-3 py-1.5 text-xs font-bold rounded-md shadow-sm bg-white text-brand-tech"; btnFinal.className = "px-3 py-1.5 text-xs font-semibold rounded-md text-slate-500 hover:text-slate-800 bg-transparent"; descContainer.classList.add('hidden'); }
-            else { btnFinal.className = "px-3 py-1.5 text-xs font-bold rounded-md shadow-sm bg-white text-brand-tech"; btnDetalle.className = "px-3 py-1.5 text-xs font-semibold rounded-md text-slate-500 hover:text-slate-800 bg-transparent"; descContainer.classList.remove('hidden'); }
+            const btnDetalle = document.getElementById('btnModeDetalle');
+            const btnFinal = document.getElementById('btnModeFinal');
+            const descContainer = document.getElementById('generalDescContainer');
+            if (mode === 'detalle') {
+                btnDetalle.className = "px-3 py-1.5 text-xs font-bold rounded-md shadow-sm bg-white text-brand-tech";
+                btnFinal.className = "px-3 py-1.5 text-xs font-semibold rounded-md text-slate-500 hover:text-slate-800 bg-transparent";
+                descContainer.classList.add('hidden');
+            } else {
+                btnFinal.className = "px-3 py-1.5 text-xs font-bold rounded-md shadow-sm bg-white text-brand-tech";
+                btnDetalle.className = "px-3 py-1.5 text-xs font-semibold rounded-md text-slate-500 hover:text-slate-800 bg-transparent";
+                descContainer.classList.remove('hidden');
+            }
             window.updatePreview();
         };
 
@@ -1176,7 +1756,8 @@
         window.moveItemDown = (index) => { if (index < window.items.length - 1) { const temp = window.items[index]; window.items[index] = window.items[index + 1]; window.items[index + 1] = temp; window.renderItems(); } };
 
         window.renderItems = () => {
-            const tbody = document.getElementById('itemsBody'); tbody.innerHTML = '';
+            const tbody = document.getElementById('itemsBody');
+            tbody.innerHTML = '';
             window.items.forEach((item, index) => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -1194,7 +1775,8 @@
                 `;
                 tbody.appendChild(tr);
             });
-            lucide.createIcons(); window.updatePreview();
+            lucide.createIcons();
+            window.updatePreview();
         };
 
         window.updateItem = (id, field, value) => {
@@ -1203,45 +1785,93 @@
                 if (field === 'desc') {
                     item[field] = value.toUpperCase();
                     const foundProd = window.productCatalog.find(p => (p.desc || '').toUpperCase() === value.trim().toUpperCase());
-                    if (foundProd) { item.cost = foundProd.cost; item.price = foundProd.price; document.getElementById(`cost_${id}`).value = foundProd.cost; document.getElementById(`price_${id}`).value = foundProd.price; }
-                } else { item[field] = parseFloat(value) || 0; }
+                    if (foundProd) {
+                        item.cost = foundProd.cost;
+                        item.price = foundProd.price;
+                        document.getElementById(`cost_${id}`).value = foundProd.cost;
+                        document.getElementById(`price_${id}`).value = foundProd.price;
+                    }
+                } else {
+                    item[field] = parseFloat(value) || 0;
+                }
                 window.updatePreview();
             }
         };
 
-        window.addItemRow = () => { const newId = window.items.length > 0 ? Math.max(...window.items.map(i => i.id)) + 1 : 1; window.items.push({ id: newId, qty: 1, desc: '', cost: 0, price: 0 }); window.renderItems(); };
-        window.removeItem = (id) => { window.items = window.items.filter(i => i.id !== id); window.renderItems(); };
+        window.addItemRow = () => {
+            const newId = window.items.length > 0 ? Math.max(...window.items.map(i => i.id)) + 1 : 1;
+            window.items.push({ id: newId, qty: 1, desc: '', cost: 0, price: 0 });
+            window.renderItems();
+        };
+
+        window.removeItem = (id) => {
+            window.items = window.items.filter(i => i.id !== id);
+            if (window.items.length === 0) window.items.push({ id: 1, qty: 1, desc: '', cost: 0, price: 0 });
+            window.renderItems();
+        };
 
         window.getCalculatedTotals = () => {
             let totalCost = window.items.reduce((sum, item) => sum + (item.qty * (item.cost || 0)), 0);
             let totalVenta = window.items.reduce((sum, item) => sum + (item.qty * (item.price || 0)), 0);
-            const mCost = document.getElementById('f_manualCost')?.value; const mTotal = document.getElementById('f_manualTotal')?.value;
+            const mCost = document.getElementById('f_manualCost')?.value;
+            const mTotal = document.getElementById('f_manualTotal')?.value;
             if (mCost && mCost.trim() !== '') totalCost = parseFloat(mCost) || 0;
             if (mTotal && mTotal.trim() !== '') totalVenta = parseFloat(mTotal) || 0;
             return { cost: totalCost, venta: totalVenta, ganancia: totalVenta - totalCost };
         };
 
-        document.getElementById('image-upload-input').addEventListener('change', function(e) { window.handleImageFiles(e.target.files); this.value = ''; });
+        // Imágenes Anexas
+        document.getElementById('image-upload-input').addEventListener('change', function(e) {
+            window.handleImageFiles(e.target.files);
+            this.value = '';
+        });
+
         document.addEventListener('paste', function(e) {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-            if(e.clipboardData && e.clipboardData.items) {
-                const cb_items = e.clipboardData.items; const imageFiles = [];
-                for (let i = 0; i < cb_items.length; i++) { if (cb_items[i].type.indexOf('image') !== -1) { imageFiles.push(cb_items[i].getAsFile()); } }
-                if(imageFiles.length > 0) { e.preventDefault(); window.handleImageFiles(imageFiles); }
+            if (e.clipboardData && e.clipboardData.items) {
+                const cb_items = e.clipboardData.items;
+                const imageFiles = [];
+                for (let i = 0; i < cb_items.length; i++) {
+                    if (cb_items[i].type.indexOf('image') !== -1) imageFiles.push(cb_items[i].getAsFile());
+                }
+                if (imageFiles.length > 0) {
+                    e.preventDefault();
+                    window.handleImageFiles(imageFiles);
+                }
             }
         });
+
         window.handleImageFiles = (files) => {
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
-                reader.onload = (event) => { window.proformaImages.push(event.target.result); window.renderProformaImagesUI(); window.updatePreview(); };
+                reader.onload = (event) => {
+                    const b64 = event.target.result;
+                    const img = new Image();
+                    img.onload = () => {
+                        window.proformaImages.push(b64);
+                        window.proformaImageObjects.push(img);
+                        window.renderProformaImagesUI();
+                        window.updatePreview();
+                    };
+                    img.src = b64;
+                };
                 reader.readAsDataURL(file);
             });
         };
-        window.removeImage = (index) => { window.proformaImages.splice(index, 1); window.renderProformaImagesUI(); window.updatePreview(); };
+
+        window.removeImage = (index) => {
+            window.proformaImages.splice(index, 1);
+            window.proformaImageObjects.splice(index, 1);
+            window.renderProformaImagesUI();
+            window.updatePreview();
+        };
+
         window.renderProformaImagesUI = () => {
             const thumbContainer = document.getElementById('image-thumbnails');
-            if (window.proformaImages.length === 0) { thumbContainer.classList.add('hidden'); thumbContainer.innerHTML = ''; } 
-            else {
+            if (window.proformaImages.length === 0) {
+                thumbContainer.classList.add('hidden');
+                thumbContainer.innerHTML = '';
+            } else {
                 thumbContainer.classList.remove('hidden');
                 thumbContainer.innerHTML = window.proformaImages.map((src, index) => `
                     <div class="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group bg-slate-100">
@@ -1253,48 +1883,97 @@
             }
         };
 
-        window.openHistory = () => { window.renderHistoryTable(); document.getElementById('historyModal').classList.remove('hidden'); }
+        // Historial BD
+        window.openHistory = () => { window.renderHistoryTable(); document.getElementById('historyModal').classList.remove('hidden'); };
         window.closeHistory = () => document.getElementById('historyModal').classList.add('hidden');
         window.renderHistoryTable = () => {
-            const tbody = document.getElementById('dbTableBody'); tbody.innerHTML = '';
-            window.proformasList.forEach(prof => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td class="py-3 px-4">${prof.date}</td><td class="py-3 px-4 font-bold text-brand-corp">${prof.profNumber}</td><td class="py-3 px-4">${prof.clientName}</td><td class="py-3 px-4 text-right font-mono font-bold">S/ ${prof.total.toFixed(2)}</td><td class="py-3 px-4 text-center">${prof.status}</td><td class="py-3 px-4 text-center"><button onclick="window.loadProforma('${prof.id}')" class="text-blue-500 hover:text-blue-700 mr-2"><i data-lucide="edit" class="w-4 h-4 inline"></i></button></td>`;
-                tbody.appendChild(tr);
-            });
+            const tbody = document.getElementById('dbTableBody');
+            if (!tbody) return;
+            const q = (document.getElementById('searchHistory')?.value || '').trim().toUpperCase();
+            tbody.innerHTML = '';
+            window.proformasList
+                .filter(p => !q || String(p.clientName).toUpperCase().includes(q) || String(p.profNumber).toUpperCase().includes(q))
+                .forEach(prof => {
+                    const total = parseFloat(prof.manualTotal > 0 ? prof.manualTotal : prof.total) || 0;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="py-3 px-4">${prof.date}</td>
+                        <td class="py-3 px-4 font-bold text-brand-corp">PF-${String(prof.profNumber).replace(/^PF-/i, '')}</td>
+                        <td class="py-3 px-4 font-semibold">${prof.clientName}</td>
+                        <td class="py-3 px-4 text-right font-mono font-bold">S/ ${total.toFixed(2)}</td>
+                        <td class="py-3 px-4 text-center">${prof.status}</td>
+                        <td class="py-3 px-4 text-center">
+                            <button onclick="window.loadProforma('${prof.id}')" class="text-blue-600 hover:text-blue-800 px-2 py-1 rounded bg-blue-50 font-bold text-xs inline-flex items-center gap-1">
+                                <i data-lucide="edit" class="w-3.5 h-3.5"></i> Cargar
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
             lucide.createIcons();
-        }
-
-        window.loadProforma = (id) => {
-            const prof = window.proformasList.find(p => p.id === id); if (!prof) return; window.currentEditId = id; 
-            document.getElementById('f_profNumber').value = prof.profNumber.replace('PF-', ''); document.getElementById('f_date').value = prof.date; document.getElementById('f_status').value = prof.status; document.getElementById('f_clientName').value = prof.clientName === 'Sin Nombre' ? '' : prof.clientName; document.getElementById('f_clientDoc').value = prof.clientDoc || ''; document.getElementById('f_clientPhone').value = prof.clientPhone || ''; document.getElementById('f_clientAddress').value = prof.clientAddress || ''; document.getElementById('f_generalDesc').value = prof.generalDesc || ''; document.getElementById('f_manualCost').value = prof.manualCost || ''; document.getElementById('f_manualTotal').value = prof.manualTotal || '';
-            window.items = prof.items && prof.items.length > 0 ? prof.items.map((i, idx) => ({ id: idx + 1, qty: i.qty, desc: i.desc, cost: i.cost, price: i.price })) : [{ id: 1, qty: 1, desc: '', cost: 0, price: 0 }];
-            window.setMode(prof.viewMode || 'detalle'); window.renderItems(); window.updatePreview(); window.closeHistory();
         };
 
-        window.openContractModal = () => { window.renderContractTable(); document.getElementById('contractModal').classList.remove('hidden'); }
+        window.loadProforma = (id) => {
+            const prof = window.proformasList.find(p => p.id === id);
+            if (!prof) return;
+            window.currentEditId = id; 
+            document.getElementById('f_profNumber').value = String(prof.profNumber).replace(/^PF-/i, '');
+            document.getElementById('f_date').value = prof.date;
+            document.getElementById('f_status').value = prof.status;
+            document.getElementById('f_clientName').value = prof.clientName === 'Sin Nombre' ? '' : prof.clientName;
+            document.getElementById('f_clientDoc').value = prof.clientDoc || '';
+            document.getElementById('f_clientPhone').value = prof.clientPhone || '';
+            document.getElementById('f_clientAddress').value = prof.clientAddress || '';
+            document.getElementById('f_generalDesc').value = prof.generalDesc || '';
+            document.getElementById('f_manualCost').value = prof.manualCost || '';
+            document.getElementById('f_manualTotal').value = prof.manualTotal || '';
+            window.items = prof.items && prof.items.length > 0 ? prof.items.map((i, idx) => ({ id: idx + 1, qty: i.qty, desc: i.desc, cost: i.cost, price: i.price })) : [{ id: 1, qty: 1, desc: '', cost: 0, price: 0 }];
+            window.setMode(prof.viewMode || 'detalle');
+            window.renderItems();
+            window.updatePreview();
+            window.closeHistory();
+            window.showToast(`Proforma PF-${String(prof.profNumber).replace(/^PF-/i, '')} cargada.`);
+        };
+
+        // =========================================================================
+        // GENERADOR DE CONTRATOS EN CANVAS DIRECTO A4 (SIN RECORTES Y MONTOS EXACTOS)
+        // =========================================================================
+        window.openContractModal = () => { window.renderContractTable(); document.getElementById('contractModal').classList.remove('hidden'); };
         window.closeContractModal = () => document.getElementById('contractModal').classList.add('hidden');
         
+        window.getProformaExactTotal = (prof) => {
+            if (prof.manualTotal && String(prof.manualTotal).trim() !== '' && parseFloat(prof.manualTotal) > 0) {
+                return parseFloat(prof.manualTotal);
+            }
+            if (prof.total && parseFloat(prof.total) > 0) {
+                return parseFloat(prof.total);
+            }
+            if (Array.isArray(prof.items)) {
+                return prof.items.reduce((acc, it) => acc + ((parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0)), 0);
+            }
+            return 0;
+        };
+
         window.renderContractTable = () => {
             const tbody = document.getElementById('contractTableBody');
             if (!tbody) return;
             tbody.innerHTML = '';
             
             const approvedList = window.proformasList.filter(p => p.status === 'Aprobado' || p.status === 'Terminado');
-            
             if (approvedList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500 font-medium">Aún no hay proformas en estado "Aprobado" para generar contratos.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500 font-medium">No hay proformas en estado "Aprobado" o "Terminado".</td></tr>`;
                 return;
             }
 
             approvedList.forEach(prof => {
-                const total = parseFloat(prof.total || 0);
+                const total = window.getProformaExactTotal(prof);
+                const cleanRef = String(prof.profNumber || '0000').replace(/^PF-/i, '').replace(/^PR-/i, '').trim();
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td class="py-3 px-4 text-slate-500 font-medium">${prof.date}</td>
-                    <td class="py-3 px-4 font-black text-brand-corp">${prof.profNumber}</td>
-                    <td class="py-3 px-4 font-semibold text-slate-800 truncate max-w-[150px]">${prof.clientName}</td>
-                    <td class="py-3 px-4 text-right font-mono font-bold text-slate-600">S/ ${total.toFixed(2)}</td>
+                    <td class="py-3 px-4 font-black text-brand-corp">PF-${cleanRef}</td>
+                    <td class="py-3 px-4 font-semibold text-slate-800 truncate max-w-[160px]">${prof.clientName}</td>
+                    <td class="py-3 px-4 text-right font-mono font-bold text-slate-700">S/ ${total.toFixed(2)}</td>
                     <td class="py-3 px-4 text-center">
                         <div class="inline-flex items-center bg-slate-50 border border-slate-200 rounded-lg overflow-hidden">
                             <input type="number" id="adv_${prof.id}" value="50" min="0" max="100" class="w-14 bg-transparent px-2 py-1.5 text-center text-xs font-black text-brand-corp focus:outline-none">
@@ -1306,10 +1985,10 @@
                     </td>
                     <td class="py-3 px-4 text-center">
                         <div class="flex items-center justify-center gap-2">
-                            <button onclick="window.downloadContract('${prof.id}')" class="bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-600 hover:to-red-600 text-white px-3 py-1.5 rounded-xl shadow-md text-xs font-bold flex items-center gap-1.5 transition-all" title="Descargar PDF">
+                            <button onclick="window.downloadContract('${prof.id}')" class="bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white px-3 py-1.5 rounded-xl shadow-md text-xs font-bold flex items-center gap-1.5 transition-all">
                                 <i data-lucide="file-signature" class="w-3.5 h-3.5"></i> PDF
                             </button>
-                            <button onclick="window.sendContractWhatsApp('${prof.id}')" class="bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#128C7E] text-white px-3 py-1.5 rounded-xl shadow-md text-xs font-bold flex items-center gap-1.5 transition-all" title="Enviar por WhatsApp">
+                            <button onclick="window.sendContractWhatsApp('${prof.id}')" class="bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white px-3 py-1.5 rounded-xl shadow-md text-xs font-bold flex items-center gap-1.5 transition-all">
                                 <i data-lucide="send" class="w-3.5 h-3.5"></i> WA
                             </button>
                         </div>
@@ -1317,17 +1996,15 @@
                 `;
                 tbody.appendChild(tr);
 
-                setTimeout(() => {
-                    const advInput = document.getElementById(`adv_${prof.id}`);
-                    const payCell = document.getElementById(`pay_${prof.id}`);
-                    if (advInput && payCell) {
-                        advInput.addEventListener('input', (e) => {
-                            const pct = parseFloat(e.target.value) || 0;
-                            const toPay = total * (pct / 100);
-                            payCell.innerText = `S/ ${toPay.toFixed(2)}`;
-                        });
-                    }
-                }, 50);
+                const advInput = tr.querySelector(`#adv_${prof.id}`);
+                const payCell = tr.querySelector(`#pay_${prof.id}`);
+                if (advInput && payCell) {
+                    advInput.addEventListener('input', (e) => {
+                        const pct = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
+                        const toPay = total * (pct / 100);
+                        payCell.innerText = `S/ ${toPay.toFixed(2)}`;
+                    });
+                }
             });
             lucide.createIcons();
         };
@@ -1335,19 +2012,14 @@
         window.sendContractWhatsApp = (id) => {
             const prof = window.proformasList.find(p => p.id === id);
             if (!prof) return;
-
             const p = (prof.clientPhone || '').replace(/\D/g, '');
-            if(!p) {
-                alert("Este cliente no tiene un número de celular registrado.");
-                window.downloadContract(id);
-                return;
+            const cleanRef = String(prof.profNumber || '0000').replace(/^PF-/i, '').replace(/^PR-/i, '').trim();
+            if (p) {
+                const num = (p.length === 9 && p.startsWith('9')) ? '51' + p : p;
+                const cName = prof.clientName && prof.clientName !== 'SIN NOMBRE' ? prof.clientName : 'Estimado Cliente';
+                const text = `Estimado(a) *${cName}*, le saluda José Vizcarra de *KGB Technology*. 👋\n\nAdjunto en formato PDF el *Contrato de Servicios* correspondiente a nuestra Proforma aprobada *(N° PF-${cleanRef})* para su revisión y firma. 🤝`;
+                window.open(`https://wa.me/${num}?text=${encodeURIComponent(text)}`, '_blank');
             }
-            
-            const num = (p.length === 9 && p.startsWith('9')) ? '51' + p : p;
-            const cName = prof.clientName && prof.clientName !== 'SIN NOMBRE' ? prof.clientName : 'Estimado Cliente';
-            const pf = prof.propNumber || prof.profNumber || '';
-            const text = `Hola *${cName}*, te saluda José Vizcarra de *KGB Distribuidores*. 👋\n\nHe generado el *Contrato de Servicios* correspondiente a la cotización aprobada (*PF-${pf}*).\n\nTe lo envío adjunto en PDF para tu revisión y firma. Quedo atento para coordinar los siguientes pasos. 🤝`;
-            window.open(`https://wa.me/${num}?text=${encodeURIComponent(text)}`, '_blank');
             window.downloadContract(id);
         };
 
@@ -1356,102 +2028,158 @@
             if (!prof) return;
 
             const advInput = document.getElementById(`adv_${id}`);
-            const advPct = advInput ? parseFloat(advInput.value) || 50 : 50;
-            const saldoPct = 100 - advPct;
-            
-            let total = parseFloat(prof.total || 0);
-            if (prof.manualTotal && parseFloat(prof.manualTotal) > 0) {
-                total = parseFloat(prof.manualTotal);
-            }
-
+            const advPct = advInput ? Math.min(100, Math.max(0, parseFloat(advInput.value) || 50)) : 50;
+            const saldoPct = Math.max(0, 100 - advPct);
+            const total = window.getProformaExactTotal(prof);
             const adelanto = total * (advPct / 100);
             const saldo = total - adelanto;
 
-            const cName = prof.clientName && prof.clientName !== 'SIN NOMBRE' ? prof.clientName : '______________________';
+            const cName = (prof.clientName && prof.clientName !== 'SIN NOMBRE') ? prof.clientName.toUpperCase() : '___________________________';
             const cDoc = prof.clientDoc ? prof.clientDoc : '________________';
-            
-            const rawRef = prof.propNumber || prof.profNumber || '0000';
-            const cleanRef = String(rawRef).replace(/^PR-/i, '').replace(/^PF-/i, '').trim();
-
+            const cleanRef = String(prof.profNumber || '0000').replace(/^PF-/i, '').replace(/^PR-/i, '').trim();
             const dateParts = (prof.date || '').split('-');
             const dateStr = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : prof.date;
 
-            const element = document.createElement('div');
-            
-            element.style.cssText = "width: 750px; padding: 0; margin: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; color: #000; font-size: 13px; line-height: 1.5;";
+            const canvas = document.createElement('canvas');
+            canvas.width = PAGE_W * RENDER_SCALE;
+            canvas.height = PAGE_H * RENDER_SCALE;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(RENDER_SCALE, RENDER_SCALE);
 
-            element.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 25px; border-bottom: 2px solid #1f2937; padding-bottom: 12px;">
-                    <img src="${window.logoBase64 || 'https://i.imgur.com/Dla3rBv.png'}" crossorigin="anonymous" style="height: 50px; object-fit: contain;">
-                    <div style="text-align: right;">
-                        <h2 style="font-size: 18px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #1f2937; margin: 0;">CONTRATO DE SERVICIOS</h2>
-                        <p style="font-size: 13px; font-weight: 700; color: #4b5563; margin-top: 4px; margin-bottom: 0;">Ref: <span style="color: #3b82f6;">PF-${cleanRef}</span></p>
-                    </div>
-                </div>
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, PAGE_W, PAGE_H);
 
-                <div style="text-align: justify; color: #000;">
-                    <p style="margin-bottom: 16px;">Conste por el presente documento, el <strong>CONTRATO DE COMPRAVENTA Y PRESTACIÓN DE SERVICIOS</strong>, que celebran de una parte <strong>KGB DISTRIBUIDORES</strong> con RUC 20600094719, con domicilio en Jr. 2 de mayo. 477 Int 201, a quien en adelante se le denominará <strong>EL PROVEEDOR</strong>; y de la otra parte <strong>${cName}</strong>, identificado con DNI/RUC N° <strong>${cDoc}</strong>, a quien en adelante se le denominará <strong>EL CLIENTE</strong>; en los términos y condiciones siguientes:</p>
+            const mX = 72; // 19mm de margen lateral garantizado
+            const mW = PAGE_W - mX * 2;
+            let y = 65;
 
-                    <p style="margin-bottom: 16px;"><strong>PRIMERA: OBJETO DEL CONTRATO</strong><br>
-                    EL PROVEEDOR se compromete a entregar los equipos de cómputo y/o prestar los servicios técnicos detallados estrictamente en la Proforma N° <strong>PF-${cleanRef}</strong>, de fecha <strong>${dateStr}</strong>, la cual ha sido aprobada y forma parte integral de este contrato.</p>
+            if (window.logoImgObj) {
+                const r = Math.min(165 / window.logoImgObj.width, 62 / window.logoImgObj.height);
+                ctx.drawImage(window.logoImgObj, mX, y, window.logoImgObj.width * r, window.logoImgObj.height * r);
+            }
 
-                    <p style="margin-bottom: 10px;"><strong>SEGUNDA: CONTRAPRESTACIÓN Y FORMA DE PAGO</strong><br>
-                    El precio total acordado por los bienes y servicios descritos asciende a la suma de <strong>S/ ${total.toFixed(2)}</strong> (Soles). EL CLIENTE abonará dicho monto bajo la siguiente modalidad:</p>
-                    
-                    <div style="margin-left: 20px; margin-bottom: 16px;">
-                        <p style="margin: 4px 0;"><strong>1. Pago de Adelanto (${advPct}%):</strong> A la firma del presente documento, EL CLIENTE abona la suma de <strong>S/ ${adelanto.toFixed(2)}</strong> (Soles), en calidad de anticipo para el inicio del servicio y adquisición de componentes.</p>
-                        <p style="margin: 4px 0;"><strong>2. Pago de Saldo (${saldoPct}%):</strong> El saldo restante de <strong>S/ ${saldo.toFixed(2)}</strong> (Soles) será cancelado contra entrega y conformidad de los equipos y/o servicios brindados.</p>
-                    </div>
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'top';
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '900 17px "Orbitron", sans-serif';
+            ctx.fillText('CONTRATO DE SERVICIOS', mX + mW, y + 6);
 
-                    <p style="margin-bottom: 16px;"><strong>TERCERA: GARANTÍA Y CONDICIONES</strong><br>
-                    Los equipos cuentan con una garantía contra defectos de fábrica. El tiempo estimado de entrega y validez del acuerdo se rige estrictamente por lo indicado en la proforma original. Toda modificación al requerimiento inicial solicitada por EL CLIENTE generará un reajuste en los costos y tiempos de entrega.</p>
+            ctx.fillStyle = '#1d4ed8';
+            ctx.font = '800 13px "JetBrains Mono", monospace';
+            ctx.fillText(`Ref: Proforma N° PF-${cleanRef}`, mX + mW, y + 30);
 
-                    <p style="margin-bottom: 16px;">En señal de conformidad absoluta con todos los términos del presente contrato, ambas partes proceden a firmar el presente documento.</p>
-                </div>
+            y += 72;
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(mX, y);
+            ctx.lineTo(mX + mW, y);
+            ctx.stroke();
 
-                <table style="width: 100%; margin-top: 60px; border-collapse: collapse;">
-                    <tr>
-                        <td style="width: 45%; text-align: center; vertical-align: bottom;">
-                            <img src="${window.sigBase64 || 'https://i.imgur.com/R2Wi8kr.png'}" crossorigin="anonymous" style="height: 70px; object-fit: contain; margin-bottom: -5px; display: block; margin-left: auto; margin-right: auto;">
-                            <div style="border-top: 1.5px solid #000; padding-top: 6px;">
-                                <p style="font-weight: bold; font-size: 12px; color: #000; margin: 0;">José Leonaldo Vizcarra Ramirez</p>
-                                <p style="font-size: 11px; color: #333; margin: 2px 0;">DNI: 44865369</p>
-                                <p style="font-size: 11px; color: #333; margin: 0;">Gerente General - KGB DISTRIBUIDORES</p>
-                            </div>
-                        </td>
-                        <td style="width: 10%;"></td>
-                        <td style="width: 45%; text-align: center; vertical-align: bottom;">
-                            <div style="height: 65px; width: 100%;"></div>
-                            <div style="border-top: 1.5px solid #000; padding-top: 6px;">
-                                <p style="font-weight: bold; text-transform: uppercase; font-size: 12px; color: #000; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${cName}</p>
-                                <p style="font-size: 11px; color: #333; margin: 2px 0;">DNI/RUC: ${cDoc}</p>
-                                <p style="font-size: 11px; color: #333; margin: 0;">EL CLIENTE</p>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
-
-                <div style="margin-top: 40px; padding-top: 12px; border-top: 1px solid #e5e7eb; text-align: center;">
-                    <p style="font-size: 9px; color: #6b7280; font-weight: bold; margin: 0;">Documento generado automáticamente por ProformaTech-KGB Distribuidores<br>CREADO POR JVIZCARRA</p>
-                </div>
-            `;
-
-            const opt = {
-                margin: [20, 20, 20, 20],
-                filename: `Contrato_KGB_PF-${cleanRef}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            y += 28;
+            const drawParagraph = (title, bodyText) => {
+                if (title) {
+                    ctx.font = '900 12px "Exo 2", sans-serif';
+                    ctx.fillStyle = '#0f172a';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(title, mX, y);
+                    y += 18;
+                }
+                ctx.font = '500 12px "Exo 2", sans-serif';
+                ctx.fillStyle = '#1e293b';
+                const lines = wrapCanvasText(ctx, bodyText, mW);
+                lines.forEach(line => {
+                    ctx.fillText(line, mX, y);
+                    y += 18;
+                });
+                y += 12;
             };
 
-            html2pdf().set(opt).from(element).save();
+            drawParagraph(
+                null,
+                `Conste por el presente documento, el CONTRATO DE COMPRAVENTA Y PRESTACIÓN DE SERVICIOS, que celebran de una parte KGB DISTRIBUIDORES con RUC 20600094719, con domicilio en Jr. 2 de mayo 477 Int 201, a quien en adelante se le denominará EL PROVEEDOR; y de la otra parte ${cName}, identificado con DNI/RUC N° ${cDoc}, a quien en adelante se le denominará EL CLIENTE; en los términos y condiciones siguientes:`
+            );
+
+            drawParagraph(
+                'PRIMERA: OBJETO DEL CONTRATO',
+                `EL PROVEEDOR se compromete a entregar los equipos de cómputo y/o prestar los servicios técnicos detallados estrictamente en la Proforma N° PF-${cleanRef}, de fecha ${dateStr}, la cual ha sido aprobada por EL CLIENTE y forma parte integral de este contrato.`
+            );
+
+            drawParagraph(
+                'SEGUNDA: CONTRAPRESTACIÓN Y FORMA DE PAGO',
+                `El precio total acordado por los bienes y servicios descritos en la Proforma N° PF-${cleanRef} asciende a la suma total de S/ ${total.toFixed(2)} (Soles). EL CLIENTE abonará dicho monto bajo la siguiente modalidad:`
+            );
+
+            drawParagraph(
+                `   1. Pago de Adelanto (${advPct}%): A Pagar S/ ${adelanto.toFixed(2)}`,
+                `   A la firma del presente documento, EL CLIENTE abona la suma exacta de S/ ${adelanto.toFixed(2)} (Soles), en calidad de anticipo para el inicio del servicio y adquisición de componentes.`
+            );
+
+            drawParagraph(
+                `   2. Pago de Saldo Restante (${saldoPct}%): S/ ${saldo.toFixed(2)}`,
+                `   El saldo restante de S/ ${saldo.toFixed(2)} (Soles) será cancelado contra entrega y conformidad de los equipos y/o servicios brindados.`
+            );
+
+            drawParagraph(
+                'TERCERA: GARANTÍA Y CONDICIONES',
+                `Los equipos cuentan con garantía contra defectos de fábrica. El tiempo estimado de entrega y validez del acuerdo se rige estrictamente por lo indicado en la proforma original PF-${cleanRef}. Toda modificación adicional solicitada por EL CLIENTE generará un reajuste proporcional en los costos y tiempos de entrega.`
+            );
+
+            drawParagraph(
+                null,
+                `En señal de conformidad absoluta con todos los términos del presente contrato, ambas partes proceden a firmar el presente documento.`
+            );
+
+            // Zona de Firmas
+            const sigY = y + 95;
+            const colSigW = 250;
+
+            if (window.sigImgObj) {
+                const sr = Math.min(160 / window.sigImgObj.width, 65 / window.sigImgObj.height);
+                const sw = window.sigImgObj.width * sr;
+                const sh = window.sigImgObj.height * sr;
+                ctx.drawImage(window.sigImgObj, mX + (colSigW - sw) / 2, sigY - sh - 4, sw, sh);
+            }
+
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(mX, sigY);
+            ctx.lineTo(mX + colSigW, sigY);
+            ctx.moveTo(mX + mW - colSigW, sigY);
+            ctx.lineTo(mX + mW, sigY);
+            ctx.stroke();
+
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '800 11px "Exo 2", sans-serif';
+            ctx.fillText('JOSÉ LEONALDO VIZCARRA RAMIREZ', mX + colSigW / 2, sigY + 10);
+            ctx.font = '600 10.5px "Exo 2", sans-serif';
+            ctx.fillText('DNI: 44865369', mX + colSigW / 2, sigY + 25);
+            ctx.fillText('Gerente General - KGB DISTRIBUIDORES', mX + colSigW / 2, sigY + 40);
+
+            const rightSigCenter = mX + mW - colSigW / 2;
+            ctx.font = '800 11px "Exo 2", sans-serif';
+            ctx.fillText(cName.slice(0, 34), rightSigCenter, sigY + 10);
+            ctx.font = '600 10.5px "Exo 2", sans-serif';
+            ctx.fillText(`DNI/RUC: ${cDoc}`, rightSigCenter, sigY + 25);
+            ctx.fillText('EL CLIENTE', rightSigCenter, sigY + 40);
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, 210, 297);
+            pdf.save(`Contrato_KGB_PF-${cleanRef}.pdf`);
+            window.showToast(`Contrato PF-${cleanRef} descargado.`);
         };
 
+        // Catálogo y Finanzas
         window.openCatalogModal = () => document.getElementById('catalogModal').classList.remove('hidden');
         window.closeCatalogModal = () => document.getElementById('catalogModal').classList.add('hidden');
         
         window.renderCatalogTable = () => {
-            const tbody = document.getElementById('catalogTableBody'); if(!tbody) return; tbody.innerHTML = '';
+            const tbody = document.getElementById('catalogTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
             window.productCatalog.forEach(p => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td class="py-3 px-4 font-semibold text-slate-800">${p.desc}</td><td class="py-3 px-4 text-right text-orange-600 font-mono font-bold">S/ ${(p.cost||0).toFixed(2)}</td><td class="py-3 px-4 text-right text-emerald-600 font-mono font-bold">S/ ${(p.price||0).toFixed(2)}</td><td class="py-3 px-4 text-center"><button onclick="window.deleteCatalogItem('${p.id}')" class="text-slate-400 hover:text-red-500 p-1.5 rounded"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>`;
@@ -1461,39 +2189,78 @@
         };
 
         window.updateDatalist = () => {
-            const dl = document.getElementById('inventoryList'); if(!dl) return; dl.innerHTML = ''; const seen = new Set();
-            window.productCatalog.forEach(p => { const desc = (p.desc || '').trim().toUpperCase(); if(desc && !seen.has(desc)) { seen.add(desc); const opt = document.createElement('option'); opt.value = desc; dl.appendChild(opt); } });
+            const dl = document.getElementById('inventoryList');
+            if (!dl) return;
+            dl.innerHTML = '';
+            const seen = new Set();
+            window.productCatalog.forEach(p => {
+                const desc = (p.desc || '').trim().toUpperCase();
+                if (desc && !seen.has(desc)) {
+                    seen.add(desc);
+                    const opt = document.createElement('option');
+                    opt.value = desc;
+                    dl.appendChild(opt);
+                }
+            });
         };
 
         window.addCatalogItem = async () => {
-            const desc = document.getElementById('cat_desc').value.trim().toUpperCase(); const cost = parseFloat(document.getElementById('cat_cost').value) || 0; const price = parseFloat(document.getElementById('cat_price').value) || 0;
-            if(!desc) return alert("Escribe la descripción del producto.");
-            document.getElementById('cat_desc').value = ''; document.getElementById('cat_cost').value = ''; document.getElementById('cat_price').value = '';
+            const desc = document.getElementById('cat_desc').value.trim().toUpperCase();
+            const cost = parseFloat(document.getElementById('cat_cost').value) || 0;
+            const price = parseFloat(document.getElementById('cat_price').value) || 0;
+            if (!desc) {
+                window.showToast("Escribe la descripción del producto.");
+                return;
+            }
+            document.getElementById('cat_desc').value = '';
+            document.getElementById('cat_cost').value = '';
+            document.getElementById('cat_price').value = '';
             try {
-                window.setCloudStatus('syncing'); await fetch(window.WEBHOOK_URL, { method: 'POST', body: JSON.stringify({ action: "save_producto", data: {desc, cost, price} }) });
-                window.productCatalog.push({ id: 'cat_' + Date.now(), desc, cost, price }); window.renderCatalogTable(); window.updateDatalist(); window.setCloudStatus('success');
-            } catch (error) { window.setCloudStatus('error'); }
+                window.setCloudStatus('syncing');
+                await fetch(window.WEBHOOK_URL, { method: 'POST', body: JSON.stringify({ action: "save_producto", data: { desc, cost, price } }) });
+                window.productCatalog.push({ id: 'cat_' + Date.now(), desc, cost, price });
+                window.renderCatalogTable();
+                window.updateDatalist();
+                window.setCloudStatus('success');
+                window.showToast("Producto agregado al catálogo.");
+            } catch (error) {
+                window.setCloudStatus('error');
+            }
         };
 
-        window.deleteCatalogItem = async (id) => {
-            if(confirm("¿Eliminar este producto del catálogo?")) {
-                try { window.setCloudStatus('syncing'); await fetch(window.WEBHOOK_URL, { method: 'POST', body: JSON.stringify({ action: "delete_producto", id: id }) }); window.productCatalog = window.productCatalog.filter(c => c.id !== id); window.renderCatalogTable(); window.updateDatalist(); window.setCloudStatus('success'); } catch(e) { window.setCloudStatus('error'); }
-            }
+        window.deleteCatalogItem = (id) => {
+            window.askConfirm('Eliminar Producto', '¿Deseas eliminar este producto del catálogo?', async () => {
+                try {
+                    window.setCloudStatus('syncing');
+                    await fetch(window.WEBHOOK_URL, { method: 'POST', body: JSON.stringify({ action: "delete_producto", id: id }) });
+                    window.productCatalog = window.productCatalog.filter(c => c.id !== id);
+                    window.renderCatalogTable();
+                    window.updateDatalist();
+                    window.setCloudStatus('success');
+                } catch (e) {
+                    window.setCloudStatus('error');
+                }
+            });
         };
 
         window.openProfitModal = () => { 
             let inv = 0, ven = 0, gan = 0;
             window.proformasList.filter(p => p.status === 'Terminado').forEach(p => {
-                inv += parseFloat(p.cost || 0); ven += parseFloat(p.total || 0); gan += parseFloat(p.profit || 0);
+                inv += parseFloat(p.cost || 0);
+                ven += parseFloat(p.total || 0);
+                gan += parseFloat(p.profit || 0);
             });
             document.getElementById('m_inv').innerText = `S/ ${inv.toFixed(2)}`;
             document.getElementById('m_ven').innerText = `S/ ${ven.toFixed(2)}`;
             document.getElementById('m_gan').innerText = `S/ ${gan.toFixed(2)}`;
             document.getElementById('profitModal').classList.remove('hidden'); 
-        }
+        };
         window.closeProfitModal = () => document.getElementById('profitModal').classList.add('hidden');
 
-        window.onload = () => { preloadAllAssets(); window.initDefaults(); };
+        window.onload = () => {
+            preloadAllAssets();
+            window.initDefaults();
+        };
     </script>
 </body>
 </html>
