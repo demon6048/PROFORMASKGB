@@ -405,32 +405,52 @@
             </div>
         </section>
 
-        <!-- MODAL CONTRATOS -->
+        <!-- MODAL CONTRATOS (CON TABLA + VISTA PREVIA DEL CONTRATO REPARADO) -->
         <div id="contractModal" class="hidden fixed inset-0 bg-brand-dark/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div class="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200">
+            <div class="bg-white w-full max-w-6xl rounded-2xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden border border-slate-200">
                 <div class="px-6 py-4 border-b border-rose-100 flex justify-between items-center bg-rose-50">
-                    <h2 class="text-xl font-black text-brand-dark flex items-center gap-2 uppercase tracking-wide">
-                        <div class="p-1.5 bg-white rounded shadow-sm text-rose-500"><i data-lucide="file-signature" class="w-5 h-5"></i></div> Generador de Contratos
-                    </h2>
+                    <div>
+                        <h2 class="text-xl font-black text-brand-dark flex items-center gap-2 uppercase tracking-wide">
+                            <div class="p-1.5 bg-white rounded shadow-sm text-rose-500"><i data-lucide="file-signature" class="w-5 h-5"></i></div> Generador de Contratos KGB
+                        </h2>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">Márgenes A4 simétricos (19mm) • Alineación izquierda garantizada • Cálculo exacto de adelanto</p>
+                    </div>
                     <button onclick="window.closeContractModal()" class="p-2 text-slate-400 hover:text-red-500 rounded-lg">
                         <i data-lucide="x" class="w-6 h-6"></i>
                     </button>
                 </div>
-                <div class="flex-1 overflow-y-auto p-6 bg-slate-50">
-                    <table class="w-full text-left bg-white rounded-xl shadow-sm border border-slate-200">
-                        <thead class="bg-slate-100 text-slate-500 text-[10px] uppercase font-black tracking-wider border-b border-slate-200">
-                            <tr>
-                                <th class="py-3 px-4">Fecha</th>
-                                <th class="py-3 px-4">N° Proforma</th>
-                                <th class="py-3 px-4">Cliente</th>
-                                <th class="py-3 px-4 text-right">Venta Total</th>
-                                <th class="py-3 px-4 text-center">% Adelanto</th>
-                                <th class="py-3 px-4 text-right">Adelanto a Pagar</th>
-                                <th class="py-3 px-4 text-center">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody id="contractTableBody" class="text-sm divide-y divide-slate-100"></tbody>
-                    </table>
+                <div class="flex-1 overflow-y-auto p-6 bg-slate-50 space-y-6">
+                    <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-200">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-100 text-slate-500 text-[10px] uppercase font-black tracking-wider border-b border-slate-200">
+                                <tr>
+                                    <th class="py-3 px-4">Fecha</th>
+                                    <th class="py-3 px-4">N° Proforma</th>
+                                    <th class="py-3 px-4">Cliente</th>
+                                    <th class="py-3 px-4 text-right">Venta Total</th>
+                                    <th class="py-3 px-4 text-center">% Adelanto</th>
+                                    <th class="py-3 px-4 text-right">Adelanto a Pagar</th>
+                                    <th class="py-3 px-4 text-center">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="contractTableBody" class="text-sm divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Contenedor de Vista Previa en Vivo del Contrato Seleccionado -->
+                    <div id="contractPreviewBox" class="hidden bg-slate-800 rounded-2xl p-6 flex flex-col items-center border border-slate-700 shadow-inner">
+                        <div class="w-full max-w-[794px] flex items-center justify-between mb-3 text-white">
+                            <span class="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-2">
+                                <i data-lucide="eye" class="w-4 h-4"></i> Vista Previa Exacta del Contrato A4
+                            </span>
+                            <button onclick="document.getElementById('contractPreviewBox').classList.add('hidden')" class="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg font-bold">
+                                Ocultar Vista Previa
+                            </button>
+                        </div>
+                        <div class="w-full flex justify-center overflow-x-auto">
+                            <canvas id="contractLiveCanvas" class="bg-white rounded shadow-2xl" style="width: 100%; max-width: 680px; height: auto;"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -589,7 +609,7 @@
             }
         });
 
-        // Copia de Seguridad Local
+        // Copia de Seguridad Descargable
         window.backupDatabase = () => {
             const backupPayload = {
                 timestamp: new Date().toISOString(),
@@ -778,9 +798,9 @@
             // 1. DIBUJAR CABECERA CORPORATIVA CON LOGO MÁS GRANDE Y TIPOGRAFÍA TECH
             const drawHeaderAndClient = (context, startY) => {
                 let y = startY;
-                const headerH = 84; // Altura ampliada para lucir el logo un poquito más grande
+                const headerH = 84;
 
-                // A. Logo KGB (Aumentado de tamaño a pedido del usuario: hasta 200x82px)
+                // A. Logo KGB (200x82px)
                 if (window.logoImgObj) {
                     const maxLogoW = 200;
                     const maxLogoH = 82;
@@ -867,7 +887,6 @@
                 context.fill();
                 context.restore();
 
-                // Borde brillante sutil en la insignia
                 drawRoundedRect(context, badgeX, badgeY, badgeW, badgeH, 10);
                 context.strokeStyle = 'rgba(56, 189, 248, 0.55)';
                 context.lineWidth = 1.2;
@@ -991,7 +1010,6 @@
                 context.fill();
                 context.restore();
 
-                // Línea brillante inferior cian
                 context.strokeStyle = '#38bdf8';
                 context.lineWidth = 1.5;
                 context.beginPath();
@@ -1048,7 +1066,6 @@
                     const lineH = 14;
                     const rowH = Math.max(28, descLines.length * lineH + 12);
 
-                    // Si supera el espacio de la hoja, crear nueva hoja A4
                     if (curY + rowH > maxBottomY - 20) {
                         currentPageObj = createHiDPICanvasPage(cfg);
                         pages.push(currentPageObj);
@@ -1057,7 +1074,6 @@
                         curY = drawTableHeader(ctx, curY);
                     }
 
-                    // Fondo translúcido Glassmorphism (deja ver sutilmente el circuito de fondo)
                     const rowAlpha = index % 2 === 0 ? cfg.glassOpacity : Math.max(0.25, cfg.glassOpacity - 0.15);
                     drawRoundedRect(ctx, contentX, curY, contentW, rowH - 2, 6);
                     ctx.fillStyle = index % 2 === 0 
@@ -1065,7 +1081,6 @@
                         : `rgba(224, 242, 254, ${rowAlpha})`;
                     ctx.fill();
 
-                    // Borde sutil horizontal inferior con brillo tecnológico
                     const lineGrad = ctx.createLinearGradient(contentX, curY + rowH - 2, contentX + contentW, curY + rowH - 2);
                     lineGrad.addColorStop(0, 'rgba(59, 130, 246, 0.25)');
                     lineGrad.addColorStop(0.5, 'rgba(148, 163, 184, 0.35)');
@@ -1079,7 +1094,6 @@
 
                     const rowMidY = curY + (rowH - 2) / 2;
 
-                    // Pastilla tecnológica para la Cantidad
                     const pillW = 34;
                     const pillH = 19;
                     const pillX = contentX + (wCant - pillW) / 2;
@@ -1097,7 +1111,6 @@
                     ctx.font = '800 11px "JetBrains Mono", monospace';
                     ctx.fillText(String(item.qty || 1), contentX + wCant / 2, rowMidY);
 
-                    // Descripción (Centrada verticalmente en su fila con fuente Exo 2)
                     ctx.textAlign = 'left';
                     ctx.fillStyle = '#0f172a';
                     ctx.font = '700 10.5px "Exo 2", sans-serif';
@@ -1108,7 +1121,6 @@
                         textY += lineH;
                     });
 
-                    // Precio Unitario (Fuente JetBrains Mono)
                     ctx.textAlign = 'center';
                     ctx.fillStyle = '#334155';
                     ctx.font = '600 10.5px "JetBrains Mono", monospace';
@@ -1116,7 +1128,6 @@
                         ctx.fillText(`S/ ${item.price.toFixed(2)}`, contentX + wCant + wDesc + wUnit / 2, rowMidY);
                     }
 
-                    // Importe Total de la Fila
                     ctx.fillStyle = '#020617';
                     ctx.font = '800 11px "JetBrains Mono", monospace';
                     if (rowTotal > 0) {
@@ -1126,7 +1137,6 @@
                     curY += rowH;
                 });
             } else {
-                // Modo Precio Final (Paquete / Combo)
                 const wCant = contentW * 0.10;
                 const wDesc = contentW * 0.70;
                 const wImp = contentW * 0.20;
@@ -1202,7 +1212,6 @@
             const totalsX = contentX + contentW - totalsW;
             const cardH = 104;
 
-            // Panel Cristal Izquierdo (Cuentas, Condiciones y Yape)
             ctx.save();
             ctx.shadowColor = 'rgba(15, 23, 42, 0.06)';
             ctx.shadowBlur = 10;
@@ -1217,7 +1226,6 @@
             ctx.lineWidth = 1;
             ctx.stroke();
 
-            // Textos de Cuentas y Condiciones en Negro Fuerte y Nítido
             let fY = curY + 14;
             const infoPadX = contentX + 12;
             ctx.textAlign = 'left';
@@ -1253,7 +1261,6 @@
                 ctx.fillText(`NOTA: ${notas}`, infoPadX, fY);
             }
 
-            // Divisor vertical suave antes de Yape
             const yapeDivX = contentX + leftPanelW - 122;
             ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
             ctx.beginPath();
@@ -1261,7 +1268,6 @@
             ctx.lineTo(yapeDivX, curY + cardH - 12);
             ctx.stroke();
 
-            // Insignia YAPE Perfectamente Centrada con Degradado
             const yapeCenterX = yapeDivX + (contentX + leftPanelW - yapeDivX) / 2;
             const yapeBoxW = 78;
             const yapeBoxH = 24;
@@ -1286,7 +1292,7 @@
             ctx.font = '800 13px "JetBrains Mono", monospace';
             ctx.fillText(yapeNum, yapeCenterX, yapeBoxY + yapeBoxH + 18);
 
-            // C. Tarjeta de Totales Derecha (Estilo Glass-Tech Sin Celdas Excel)
+            // C. Tarjeta de Totales Derecha (Estilo Glass-Tech)
             const row1H = 31;
             const row2H = 31;
             const row3H = 42;
@@ -1305,7 +1311,6 @@
             ctx.lineWidth = 1.1;
             ctx.stroke();
 
-            // Línea divisoria horizontal sutil entre Subtotal e IGV
             ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -1313,7 +1318,6 @@
             ctx.lineTo(totalsX + totalsW - 12, curY + row1H);
             ctx.stroke();
 
-            // Fila 1: SUBTOTAL
             const r1MidY = curY + row1H / 2;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
@@ -1326,7 +1330,6 @@
             ctx.font = '700 11.5px "JetBrains Mono", monospace';
             ctx.fillText(`S/ ${subtotalStr}`, totalsX + totalsW - 14, r1MidY);
 
-            // Fila 2: IGV / EXONERADO
             const r2MidY = curY + row1H + row2H / 2;
             ctx.textAlign = 'left';
             ctx.fillStyle = '#475569';
@@ -1338,7 +1341,6 @@
             ctx.font = '700 11.5px "JetBrains Mono", monospace';
             ctx.fillText(`S/ ${igvStr}`, totalsX + totalsW - 14, r2MidY);
 
-            // Fila 3: TOTAL (Banda Tecnológica con Degradado Azul-Cian)
             const r3Y = curY + row1H + row2H;
             ctx.save();
             ctx.beginPath();
@@ -1370,14 +1372,13 @@
             ctx.font = '800 15px "JetBrains Mono", monospace';
             ctx.fillText(`S/ ${totalStr}`, totalsX + totalsW - 14, r3MidY);
 
-            // Frase de agradecimiento
             const thanksY = curY + cardH + 22;
             ctx.textAlign = 'center';
             ctx.fillStyle = '#1d4ed8';
             ctx.font = 'italic 700 11.5px "Exo 2", sans-serif';
             ctx.fillText('¡Gracias por su compra y preferencia tecnológica!', PAGE_W / 2, thanksY);
 
-            // 5. PÁGINAS DE IMÁGENES / ANEXOS (SI SE SUBIERON IMÁGENES)
+            // 5. PÁGINAS DE IMÁGENES / ANEXOS
             if (window.proformaImageObjects && window.proformaImageObjects.length > 0) {
                 for (let i = 0; i < window.proformaImageObjects.length; i += 2) {
                     const imgPage = createHiDPICanvasPage(cfg);
@@ -1426,7 +1427,6 @@
                 }
             }
 
-            // Agregar todas las hojas al contenedor
             pages.forEach(p => {
                 wrapper.appendChild(p.card);
                 window.renderedCanvases.push(p.canvas);
@@ -1936,9 +1936,13 @@
         };
 
         // =========================================================================
-        // GENERADOR DE CONTRATOS EN CANVAS DIRECTO A4 (SIN RECORTES Y MONTOS EXACTOS)
+        // GENERADOR DE CONTRATOS EN CANVAS DIRECTO A4 (CORREGIDO Y ALINEADO AL 100%)
         // =========================================================================
-        window.openContractModal = () => { window.renderContractTable(); document.getElementById('contractModal').classList.remove('hidden'); };
+        window.openContractModal = () => {
+            document.getElementById('contractPreviewBox').classList.add('hidden');
+            window.renderContractTable();
+            document.getElementById('contractModal').classList.remove('hidden');
+        };
         window.closeContractModal = () => document.getElementById('contractModal').classList.add('hidden');
         
         window.getProformaExactTotal = (prof) => {
@@ -1984,7 +1988,10 @@
                         S/ ${(total * 0.5).toFixed(2)}
                     </td>
                     <td class="py-3 px-4 text-center">
-                        <div class="flex items-center justify-center gap-2">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="window.previewContract('${prof.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition-all" title="Ver Vista Previa del Contrato">
+                                <i data-lucide="eye" class="w-3.5 h-3.5"></i> Ver
+                            </button>
                             <button onclick="window.downloadContract('${prof.id}')" class="bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white px-3 py-1.5 rounded-xl shadow-md text-xs font-bold flex items-center gap-1.5 transition-all">
                                 <i data-lucide="file-signature" class="w-3.5 h-3.5"></i> PDF
                             </button>
@@ -2003,10 +2010,304 @@
                         const pct = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
                         const toPay = total * (pct / 100);
                         payCell.innerText = `S/ ${toPay.toFixed(2)}`;
+                        if (window._lastPreviewedContractId === prof.id && !document.getElementById('contractPreviewBox').classList.contains('hidden')) {
+                            window.previewContract(prof.id);
+                        }
                     });
                 }
             });
             lucide.createIcons();
+        };
+
+        // Función auxiliar para dibujar párrafos enriquecidos (con negritas y justificación)
+        // FORZANDO SIEMPRE ctx.textAlign = 'left' para que ninguna línea se corte jamás a la izquierda
+        function drawContractRichParagraph(ctx, segments, startX, startY, maxWidth, lineHeight, fontSize) {
+            ctx.save();
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+
+            const tokens = [];
+            segments.forEach(seg => {
+                const words = String(seg.text || '').split(/\s+/).filter(Boolean);
+                words.forEach(w => {
+                    tokens.push({ word: w, bold: !!seg.bold });
+                });
+            });
+
+            const lines = [];
+            let currentLine = [];
+            let currentWidth = 0;
+
+            tokens.forEach(tk => {
+                ctx.font = `${tk.bold ? '800' : '500'} ${fontSize}px "Exo 2", sans-serif`;
+                const wordW = ctx.measureText(tk.word).width;
+                const spaceW = currentLine.length > 0 ? ctx.measureText(' ').width : 0;
+
+                if (currentLine.length > 0 && currentWidth + spaceW + wordW > maxWidth) {
+                    lines.push(currentLine);
+                    currentLine = [tk];
+                    currentWidth = wordW;
+                } else {
+                    currentLine.push(tk);
+                    currentWidth += spaceW + wordW;
+                }
+            });
+            if (currentLine.length > 0) lines.push(currentLine);
+
+            let curY = startY;
+            lines.forEach((lineTokens, lineIdx) => {
+                const isLastLine = lineIdx === lines.length - 1;
+
+                let wordsTotalW = 0;
+                lineTokens.forEach(tk => {
+                    ctx.font = `${tk.bold ? '800' : '500'} ${fontSize}px "Exo 2", sans-serif`;
+                    wordsTotalW += ctx.measureText(tk.word).width;
+                });
+
+                const gaps = lineTokens.length - 1;
+                const defaultSpace = fontSize * 0.28;
+                const justifySpace = (!isLastLine && gaps > 0 && (maxWidth - wordsTotalW) / gaps <= fontSize * 1.15)
+                    ? (maxWidth - wordsTotalW) / gaps
+                    : defaultSpace;
+
+                let curX = startX;
+                lineTokens.forEach((tk, i) => {
+                    ctx.font = `${tk.bold ? '800' : '500'} ${fontSize}px "Exo 2", sans-serif`;
+                    ctx.fillStyle = tk.bold ? '#0f172a' : '#1e293b';
+                    ctx.textAlign = 'left'; // Blindaje estricto palabra por palabra
+                    ctx.fillText(tk.word, curX, curY);
+                    curX += ctx.measureText(tk.word).width + (i < gaps ? justifySpace : 0);
+                });
+
+                curY += lineHeight;
+            });
+
+            ctx.restore();
+            return curY;
+        }
+
+        // Construye el lienzo A4 del contrato (usado tanto para Vista Previa como para PDF)
+        window.buildContractCanvas = (id, targetCanvas = null) => {
+            const prof = window.proformasList.find(p => p.id === id);
+            if (!prof) return null;
+
+            const advInput = document.getElementById(`adv_${id}`);
+            const advPct = advInput ? Math.min(100, Math.max(0, parseFloat(advInput.value) || 50)) : 50;
+            const saldoPct = Math.max(0, 100 - advPct);
+            const total = window.getProformaExactTotal(prof);
+            const adelanto = total * (advPct / 100);
+            const saldo = total - adelanto;
+
+            const cName = (prof.clientName && prof.clientName !== 'SIN NOMBRE') ? prof.clientName.toUpperCase() : '___________________________';
+            const cDoc = prof.clientDoc ? prof.clientDoc : '________________';
+            const cleanRef = String(prof.profNumber || '0000').replace(/^PF-/i, '').replace(/^PR-/i, '').trim();
+            const dateParts = (prof.date || '').split('-');
+            const dateStr = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : prof.date;
+
+            const canvas = targetCanvas || document.createElement('canvas');
+            canvas.width = PAGE_W * RENDER_SCALE;
+            canvas.height = PAGE_H * RENDER_SCALE;
+            const ctx = canvas.getContext('2d');
+            ctx.save();
+            ctx.scale(RENDER_SCALE, RENDER_SCALE);
+
+            // Fondo blanco puro A4
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, PAGE_W, PAGE_H);
+
+            const mX = 72; // 19mm de margen lateral simétrico a izquierda y derecha
+            const mW = PAGE_W - mX * 2; // 650px exactos de caja útil
+            let y = 58;
+
+            // 1. CABECERA DEL CONTRATO (Logo a la izquierda, Título y Ref a la derecha)
+            if (window.logoImgObj) {
+                const r = Math.min(175 / window.logoImgObj.width, 68 / window.logoImgObj.height);
+                const lw = window.logoImgObj.width * r;
+                const lh = window.logoImgObj.height * r;
+                ctx.drawImage(window.logoImgObj, mX, y + (68 - lh) / 2, lw, lh);
+            } else {
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.fillStyle = '#0f172a';
+                ctx.font = '900 22px "Orbitron", sans-serif';
+                ctx.fillText('KGB TECHNOLOGY', mX, y + 18);
+            }
+
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'top';
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '900 17.5px "Orbitron", sans-serif';
+            ctx.fillText('CONTRATO DE SERVICIOS', mX + mW, y + 10);
+
+            ctx.fillStyle = '#1d4ed8';
+            ctx.font = '800 13px "JetBrains Mono", monospace';
+            ctx.fillText(`Ref: Proforma N° PF-${cleanRef}`, mX + mW, y + 36);
+
+            y += 78;
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(mX, y);
+            ctx.lineTo(mX + mW, y);
+            ctx.stroke();
+
+            // REINICIO ESTRICTO DE ALINEACIÓN A LA IZQUIERDA (Soluciona el texto cortado)
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+
+            y += 26;
+            const fontSize = 12.2;
+            const lineH = 19.5;
+
+            // Párrafo Introductorio con Negritas Corporativas
+            y = drawContractRichParagraph(ctx, [
+                { text: 'Conste por el presente documento, el ', bold: false },
+                { text: 'CONTRATO DE COMPRAVENTA Y PRESTACIÓN DE SERVICIOS,', bold: true },
+                { text: ' que celebran de una parte ', bold: false },
+                { text: 'KGB DISTRIBUIDORES', bold: true },
+                { text: ' con ', bold: false },
+                { text: 'RUC 20600094719,', bold: true },
+                { text: ' con domicilio en Jr. 2 de mayo 477 Int 201, a quien en adelante se le denominará ', bold: false },
+                { text: 'EL PROVEEDOR;', bold: true },
+                { text: ' y de la otra parte ', bold: false },
+                { text: `${cName},`, bold: true },
+                { text: ' identificado(a) con ', bold: false },
+                { text: `DNI/RUC N° ${cDoc},`, bold: true },
+                { text: ' a quien en adelante se le denominará ', bold: false },
+                { text: 'EL CLIENTE;', bold: true },
+                { text: ' en los términos y condiciones siguientes:', bold: false }
+            ], mX, y, mW, lineH, fontSize);
+
+            // CLÁUSULA PRIMERA
+            y += 18;
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '900 12.5px "Exo 2", sans-serif';
+            ctx.fillText('PRIMERA: OBJETO DEL CONTRATO', mX, y);
+            y += 20;
+
+            y = drawContractRichParagraph(ctx, [
+                { text: 'EL PROVEEDOR', bold: true },
+                { text: ' se compromete a entregar los equipos de cómputo y/o prestar los servicios técnicos detallados estrictamente en la ', bold: false },
+                { text: `Proforma N° PF-${cleanRef},`, bold: true },
+                { text: ` de fecha ${dateStr}, la cual ha sido aprobada por `, bold: false },
+                { text: 'EL CLIENTE', bold: true },
+                { text: ' y forma parte integral de este contrato.', bold: false }
+            ], mX, y, mW, lineH, fontSize);
+
+            // CLÁUSULA SEGUNDA
+            y += 18;
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '900 12.5px "Exo 2", sans-serif';
+            ctx.fillText('SEGUNDA: CONTRAPRESTACIÓN Y FORMA DE PAGO', mX, y);
+            y += 20;
+
+            y = drawContractRichParagraph(ctx, [
+                { text: `El precio total acordado por los bienes y servicios descritos en la Proforma N° PF-${cleanRef} asciende a la suma total de `, bold: false },
+                { text: `S/ ${total.toFixed(2)} (Soles).`, bold: true },
+                { text: ' EL CLIENTE abonará dicho monto bajo la siguiente modalidad:', bold: false }
+            ], mX, y, mW, lineH, fontSize);
+
+            // Subpunto 1: Adelanto
+            y += 12;
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '900 12.2px "Exo 2", sans-serif';
+            ctx.fillText(`1. Pago de Adelanto (${advPct}%): A Pagar S/ ${adelanto.toFixed(2)}`, mX + 12, y);
+            y += 19;
+
+            y = drawContractRichParagraph(ctx, [
+                { text: 'A la firma del presente documento, EL CLIENTE abona la suma exacta de ', bold: false },
+                { text: `S/ ${adelanto.toFixed(2)} (Soles),`, bold: true },
+                { text: ' en calidad de anticipo para el inicio del servicio y adquisición de componentes.', bold: false }
+            ], mX + 12, y, mW - 12, lineH, fontSize);
+
+            // Subpunto 2: Saldo Restante
+            y += 12;
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '900 12.2px "Exo 2", sans-serif';
+            ctx.fillText(`2. Pago de Saldo Restante (${saldoPct}%): S/ ${saldo.toFixed(2)}`, mX + 12, y);
+            y += 19;
+
+            y = drawContractRichParagraph(ctx, [
+                { text: 'El saldo restante de ', bold: false },
+                { text: `S/ ${saldo.toFixed(2)} (Soles)`, bold: true },
+                { text: ' será cancelado contra entrega y conformidad de los equipos y/o servicios brindados.', bold: false }
+            ], mX + 12, y, mW - 12, lineH, fontSize);
+
+            // CLÁUSULA TERCERA
+            y += 18;
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '900 12.5px "Exo 2", sans-serif';
+            ctx.fillText('TERCERA: GARANTÍA Y CONDICIONES', mX, y);
+            y += 20;
+
+            y = drawContractRichParagraph(ctx, [
+                { text: `Los equipos cuentan con garantía contra defectos de fábrica. El tiempo estimado de entrega y validez del acuerdo se rige estrictamente por lo indicado en la proforma original `, bold: false },
+                { text: `PF-${cleanRef}.`, bold: true },
+                { text: ' Toda modificación adicional solicitada por EL CLIENTE generará un reajuste proporcional en los costos y tiempos de entrega.', bold: false }
+            ], mX, y, mW, lineH, fontSize);
+
+            y += 16;
+            y = drawContractRichParagraph(ctx, [
+                { text: 'En señal de conformidad absoluta con todos los términos del presente contrato, ambas partes proceden a firmar el presente documento.', bold: false }
+            ], mX, y, mW, lineH, fontSize);
+
+            // Zona de Firmas Simétrica
+            const sigY = Math.max(y + 105, 885);
+            const colSigW = 250;
+
+            if (window.sigImgObj) {
+                const sr = Math.min(160 / window.sigImgObj.width, 65 / window.sigImgObj.height);
+                const sw = window.sigImgObj.width * sr;
+                const sh = window.sigImgObj.height * sr;
+                ctx.drawImage(window.sigImgObj, mX + (colSigW - sw) / 2, sigY - sh - 4, sw, sh);
+            }
+
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.moveTo(mX, sigY);
+            ctx.lineTo(mX + colSigW, sigY);
+            ctx.moveTo(mX + mW - colSigW, sigY);
+            ctx.lineTo(mX + mW, sigY);
+            ctx.stroke();
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '800 11px "Exo 2", sans-serif';
+            ctx.fillText('JOSÉ LEONALDO VIZCARRA RAMIREZ', mX + colSigW / 2, sigY + 10);
+            ctx.font = '600 10.5px "Exo 2", sans-serif';
+            ctx.fillText('DNI: 44865369', mX + colSigW / 2, sigY + 25);
+            ctx.fillText('Gerente General - KGB DISTRIBUIDORES', mX + colSigW / 2, sigY + 40);
+
+            const rightSigCenter = mX + mW - colSigW / 2;
+            ctx.font = '800 11px "Exo 2", sans-serif';
+            ctx.fillText(cName.slice(0, 34), rightSigCenter, sigY + 10);
+            ctx.font = '600 10.5px "Exo 2", sans-serif';
+            ctx.fillText(`DNI/RUC: ${cDoc}`, rightSigCenter, sigY + 25);
+            ctx.fillText('EL CLIENTE', rightSigCenter, sigY + 40);
+
+            // Pie de página sutil
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '600 9.5px "Exo 2", sans-serif';
+            ctx.fillText('Documento generado automáticamente por ProformaTech - KGB Distribuidores', PAGE_W / 2, PAGE_H - 36);
+
+            ctx.restore();
+            return { canvas, cleanRef };
+        };
+
+        window.previewContract = (id) => {
+            window._lastPreviewedContractId = id;
+            const box = document.getElementById('contractPreviewBox');
+            const liveCanvas = document.getElementById('contractLiveCanvas');
+            box.classList.remove('hidden');
+            window.buildContractCanvas(id, liveCanvas);
+            box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         };
 
         window.sendContractWhatsApp = (id) => {
@@ -2024,152 +2325,13 @@
         };
 
         window.downloadContract = (id) => {
-            const prof = window.proformasList.find(p => p.id === id);
-            if (!prof) return;
-
-            const advInput = document.getElementById(`adv_${id}`);
-            const advPct = advInput ? Math.min(100, Math.max(0, parseFloat(advInput.value) || 50)) : 50;
-            const saldoPct = Math.max(0, 100 - advPct);
-            const total = window.getProformaExactTotal(prof);
-            const adelanto = total * (advPct / 100);
-            const saldo = total - adelanto;
-
-            const cName = (prof.clientName && prof.clientName !== 'SIN NOMBRE') ? prof.clientName.toUpperCase() : '___________________________';
-            const cDoc = prof.clientDoc ? prof.clientDoc : '________________';
-            const cleanRef = String(prof.profNumber || '0000').replace(/^PF-/i, '').replace(/^PR-/i, '').trim();
-            const dateParts = (prof.date || '').split('-');
-            const dateStr = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : prof.date;
-
-            const canvas = document.createElement('canvas');
-            canvas.width = PAGE_W * RENDER_SCALE;
-            canvas.height = PAGE_H * RENDER_SCALE;
-            const ctx = canvas.getContext('2d');
-            ctx.scale(RENDER_SCALE, RENDER_SCALE);
-
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, PAGE_W, PAGE_H);
-
-            const mX = 72; // 19mm de margen lateral garantizado
-            const mW = PAGE_W - mX * 2;
-            let y = 65;
-
-            if (window.logoImgObj) {
-                const r = Math.min(165 / window.logoImgObj.width, 62 / window.logoImgObj.height);
-                ctx.drawImage(window.logoImgObj, mX, y, window.logoImgObj.width * r, window.logoImgObj.height * r);
-            }
-
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'top';
-            ctx.fillStyle = '#0f172a';
-            ctx.font = '900 17px "Orbitron", sans-serif';
-            ctx.fillText('CONTRATO DE SERVICIOS', mX + mW, y + 6);
-
-            ctx.fillStyle = '#1d4ed8';
-            ctx.font = '800 13px "JetBrains Mono", monospace';
-            ctx.fillText(`Ref: Proforma N° PF-${cleanRef}`, mX + mW, y + 30);
-
-            y += 72;
-            ctx.strokeStyle = '#1e293b';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(mX, y);
-            ctx.lineTo(mX + mW, y);
-            ctx.stroke();
-
-            y += 28;
-            const drawParagraph = (title, bodyText) => {
-                if (title) {
-                    ctx.font = '900 12px "Exo 2", sans-serif';
-                    ctx.fillStyle = '#0f172a';
-                    ctx.textAlign = 'left';
-                    ctx.fillText(title, mX, y);
-                    y += 18;
-                }
-                ctx.font = '500 12px "Exo 2", sans-serif';
-                ctx.fillStyle = '#1e293b';
-                const lines = wrapCanvasText(ctx, bodyText, mW);
-                lines.forEach(line => {
-                    ctx.fillText(line, mX, y);
-                    y += 18;
-                });
-                y += 12;
-            };
-
-            drawParagraph(
-                null,
-                `Conste por el presente documento, el CONTRATO DE COMPRAVENTA Y PRESTACIÓN DE SERVICIOS, que celebran de una parte KGB DISTRIBUIDORES con RUC 20600094719, con domicilio en Jr. 2 de mayo 477 Int 201, a quien en adelante se le denominará EL PROVEEDOR; y de la otra parte ${cName}, identificado con DNI/RUC N° ${cDoc}, a quien en adelante se le denominará EL CLIENTE; en los términos y condiciones siguientes:`
-            );
-
-            drawParagraph(
-                'PRIMERA: OBJETO DEL CONTRATO',
-                `EL PROVEEDOR se compromete a entregar los equipos de cómputo y/o prestar los servicios técnicos detallados estrictamente en la Proforma N° PF-${cleanRef}, de fecha ${dateStr}, la cual ha sido aprobada por EL CLIENTE y forma parte integral de este contrato.`
-            );
-
-            drawParagraph(
-                'SEGUNDA: CONTRAPRESTACIÓN Y FORMA DE PAGO',
-                `El precio total acordado por los bienes y servicios descritos en la Proforma N° PF-${cleanRef} asciende a la suma total de S/ ${total.toFixed(2)} (Soles). EL CLIENTE abonará dicho monto bajo la siguiente modalidad:`
-            );
-
-            drawParagraph(
-                `   1. Pago de Adelanto (${advPct}%): A Pagar S/ ${adelanto.toFixed(2)}`,
-                `   A la firma del presente documento, EL CLIENTE abona la suma exacta de S/ ${adelanto.toFixed(2)} (Soles), en calidad de anticipo para el inicio del servicio y adquisición de componentes.`
-            );
-
-            drawParagraph(
-                `   2. Pago de Saldo Restante (${saldoPct}%): S/ ${saldo.toFixed(2)}`,
-                `   El saldo restante de S/ ${saldo.toFixed(2)} (Soles) será cancelado contra entrega y conformidad de los equipos y/o servicios brindados.`
-            );
-
-            drawParagraph(
-                'TERCERA: GARANTÍA Y CONDICIONES',
-                `Los equipos cuentan con garantía contra defectos de fábrica. El tiempo estimado de entrega y validez del acuerdo se rige estrictamente por lo indicado en la proforma original PF-${cleanRef}. Toda modificación adicional solicitada por EL CLIENTE generará un reajuste proporcional en los costos y tiempos de entrega.`
-            );
-
-            drawParagraph(
-                null,
-                `En señal de conformidad absoluta con todos los términos del presente contrato, ambas partes proceden a firmar el presente documento.`
-            );
-
-            // Zona de Firmas
-            const sigY = y + 95;
-            const colSigW = 250;
-
-            if (window.sigImgObj) {
-                const sr = Math.min(160 / window.sigImgObj.width, 65 / window.sigImgObj.height);
-                const sw = window.sigImgObj.width * sr;
-                const sh = window.sigImgObj.height * sr;
-                ctx.drawImage(window.sigImgObj, mX + (colSigW - sw) / 2, sigY - sh - 4, sw, sh);
-            }
-
-            ctx.strokeStyle = '#0f172a';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(mX, sigY);
-            ctx.lineTo(mX + colSigW, sigY);
-            ctx.moveTo(mX + mW - colSigW, sigY);
-            ctx.lineTo(mX + mW, sigY);
-            ctx.stroke();
-
-            ctx.textAlign = 'center';
-            ctx.fillStyle = '#0f172a';
-            ctx.font = '800 11px "Exo 2", sans-serif';
-            ctx.fillText('JOSÉ LEONALDO VIZCARRA RAMIREZ', mX + colSigW / 2, sigY + 10);
-            ctx.font = '600 10.5px "Exo 2", sans-serif';
-            ctx.fillText('DNI: 44865369', mX + colSigW / 2, sigY + 25);
-            ctx.fillText('Gerente General - KGB DISTRIBUIDORES', mX + colSigW / 2, sigY + 40);
-
-            const rightSigCenter = mX + mW - colSigW / 2;
-            ctx.font = '800 11px "Exo 2", sans-serif';
-            ctx.fillText(cName.slice(0, 34), rightSigCenter, sigY + 10);
-            ctx.font = '600 10.5px "Exo 2", sans-serif';
-            ctx.fillText(`DNI/RUC: ${cDoc}`, rightSigCenter, sigY + 25);
-            ctx.fillText('EL CLIENTE', rightSigCenter, sigY + 40);
-
+            const built = window.buildContractCanvas(id);
+            if (!built) return;
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-            pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, 210, 297);
-            pdf.save(`Contrato_KGB_PF-${cleanRef}.pdf`);
-            window.showToast(`Contrato PF-${cleanRef} descargado.`);
+            pdf.addImage(built.canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, 210, 297);
+            pdf.save(`Contrato_KGB_PF-${built.cleanRef}.pdf`);
+            window.showToast(`Contrato PF-${built.cleanRef} descargado.`);
         };
 
         // Catálogo y Finanzas
